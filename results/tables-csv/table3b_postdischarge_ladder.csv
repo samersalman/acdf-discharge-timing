@@ -1,0 +1,41 @@
+Outcome,Ladder row,Quantity,n,"Lost from row 1, n","Lost from row 1, percent",Percent of the analysis denominator,denominator,Percent basis,Note
+Hematoma requiring reoperation,1,Events in the analytic cohort,541,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Hematoma requiring reoperation,2,Events with the days to event field recorded,540,1,0.18,,541,"Events in the analytic cohort, row 1",
+Hematoma requiring reoperation,3,Events with postoperative length of stay recorded,532,9,1.66,,541,"Events in the analytic cohort, row 1",
+Hematoma requiring reoperation,4,Events with both fields recorded,531,10,1.85,,541,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Hematoma requiring reoperation,5,Events occurring after that patient's own discharge,229,,,43.1,531,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Any unplanned reoperation,1,Events in the analytic cohort,"1,657",0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Any unplanned reoperation,2,Events with the days to event field recorded,"1,651",6,0.36,,"1,657","Events in the analytic cohort, row 1",
+Any unplanned reoperation,3,Events with postoperative length of stay recorded,"1,625",32,1.93,,"1,657","Events in the analytic cohort, row 1",
+Any unplanned reoperation,4,Events with both fields recorded,"1,619",38,2.29,,"1,657","Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Any unplanned reoperation,5,Events occurring after that patient's own discharge,928,,,57.3,"1,619","Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Unplanned reintubation,1,Events in the analytic cohort,483,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Unplanned reintubation,2,Events with the days to event field recorded,483,0,0.00,,483,"Events in the analytic cohort, row 1",
+Unplanned reintubation,3,Events with postoperative length of stay recorded,450,33,6.83,,483,"Events in the analytic cohort, row 1",
+Unplanned reintubation,4,Events with both fields recorded,450,33,6.83,,483,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Unplanned reintubation,5,Events occurring after that patient's own discharge,124,,,27.6,450,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Ventilator dependence beyond 48 hours,1,Events in the analytic cohort,348,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Ventilator dependence beyond 48 hours,2,Events with the days to event field recorded,348,0,0.00,,348,"Events in the analytic cohort, row 1",
+Ventilator dependence beyond 48 hours,3,Events with postoperative length of stay recorded,318,30,8.62,,348,"Events in the analytic cohort, row 1",
+Ventilator dependence beyond 48 hours,4,Events with both fields recorded,318,30,8.62,,348,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Ventilator dependence beyond 48 hours,5,Events occurring after that patient's own discharge,83,,,26.1,318,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Pneumonia,1,Events in the analytic cohort,710,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Pneumonia,2,Events with the days to event field recorded,709,1,0.14,,710,"Events in the analytic cohort, row 1",
+Pneumonia,3,Events with postoperative length of stay recorded,682,28,3.94,,710,"Events in the analytic cohort, row 1",
+Pneumonia,4,Events with both fields recorded,681,29,4.08,,710,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Pneumonia,5,Events occurring after that patient's own discharge,322,,,47.3,681,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Unplanned readmission,1,Events in the analytic cohort,"3,399",0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Unplanned readmission,2,Events with the days to event field recorded,"3,389",10,0.29,,"3,399","Events in the analytic cohort, row 1",
+Unplanned readmission,3,Events with postoperative length of stay recorded,"3,399",0,0.00,,"3,399","Events in the analytic cohort, row 1",
+Unplanned readmission,4,Events with both fields recorded,"3,389",10,0.29,,"3,399","Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Unplanned readmission,5,Events occurring after that patient's own discharge,Not reported,,,Not reported,"3,389","Events with both fields recorded, row 4","The days to readmission field counts from the principal operation, so a readmission is a post-discharge event by construction for anyone who was discharged. The fraction is uninformative and is withheld; the timing curve shape is reported instead."
+Death within 30 days,1,Events in the analytic cohort,213,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Death within 30 days,2,Events with the days to event field recorded,213,0,0.00,,213,"Events in the analytic cohort, row 1",
+Death within 30 days,3,Events with postoperative length of stay recorded,213,0,0.00,,213,"Events in the analytic cohort, row 1",
+Death within 30 days,4,Events with both fields recorded,213,0,0.00,,213,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Death within 30 days,5,Events occurring after that patient's own discharge,132,,,62.0,213,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.
+Composite airway morbidity,1,Events in the analytic cohort,608,0,0.00,,"112,642",The analytic cohort; this row reports no percentage,"Denominator column is the analytic cohort, 112,642 patients."
+Composite airway morbidity,2,Events with the days to event field recorded,608,0,0.00,,608,"Events in the analytic cohort, row 1",
+Composite airway morbidity,3,Events with postoperative length of stay recorded,573,35,5.76,,608,"Events in the analytic cohort, row 1",
+Composite airway morbidity,4,Events with both fields recorded,573,35,5.76,,608,"Events in the analytic cohort, row 1",The analysis denominator. Row 5 is a percentage of this row only.
+Composite airway morbidity,5,Events occurring after that patient's own discharge,151,,,26.4,573,"Events with both fields recorded, row 4",An event on the same postoperative day as discharge counts as occurring before discharge.

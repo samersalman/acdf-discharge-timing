@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this analysis code, please cite the paper below."
+title: "ACDF discharge timing: analysis code (ACS-NSQIP 2012-2024)"
+abstract: >-
+  Cohort construction and statistical analysis code for a study of discharge
+  timing after anterior cervical discectomy and fusion in the ACS-NSQIP Adult
+  Participant Use Data File, 2012 to 2024. Contains no patient-level data.
+type: software
+license: MIT
+# TODO BEFORE PUSHING: add every co-author, in the manuscript's author order,
+# and add ORCID identifiers where available. A citation file with an incomplete
+# author list is worse than none.
+authors:
+  - family-names: "Salman"
+    given-names: "Samer"
+keywords:
+  - anterior cervical discectomy and fusion
+  - discharge timing
+  - competing risks
+  - NSQIP
+  - reproducible research

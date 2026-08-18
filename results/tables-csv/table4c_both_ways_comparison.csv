@@ -1,0 +1,7 @@
+Exposure definition,Model,"Exposed, n","Exposed with the outcome, n","Exposed rate, %","Unexposed, n","Unexposed with the outcome, n","Unexposed rate, %",Odds ratio (95% confidence interval),P value,Denominator
+"Outpatient status defined by the billing setting, as the prior literature defines it",Unadjusted,"45,848",969,2.11%,"66,027","2,414",3.66%,0.57 (0.53–0.61),< 0.001,"111,875"
+"Outpatient status defined by the billing setting, as the prior literature defines it",Adjusted,"45,848",969,2.11%,"66,027","2,414",3.66%,0.62 (0.57–0.67),< 0.001,"111,875"
+Outpatient status defined by a true postoperative length of stay of zero days,Unadjusted,"14,629",234,1.60%,"97,246","3,149",3.24%,0.49 (0.42–0.56),< 0.001,"111,875"
+Outpatient status defined by a true postoperative length of stay of zero days,Adjusted,"14,629",234,1.60%,"97,246","3,149",3.24%,0.57 (0.49–0.65),< 0.001,"111,875"
+Shift attributable to the definition change,Adjusted length of stay estimate divided by adjusted billing estimate,,,,,,,0.92,,"111,875"
+Patients classified differently by the two definitions,Discordant exposure classification,"35,605",,31.8%,,,,,,"111,875"

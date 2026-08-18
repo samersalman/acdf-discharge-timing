@@ -1,0 +1,17 @@
+Measure,Definition,n,Denominator,Estimate,95% confidence interval
+Cross-tabulation,Outpatient billing setting and zero postoperative nights,"12,497","112,559",11.1%,
+Cross-tabulation,Outpatient billing setting and one or more nights,"33,545","112,559",29.8%,
+Cross-tabulation,Inpatient billing setting and zero postoperative nights,"2,218","112,559",2.0%,
+Cross-tabulation,Inpatient billing setting and one or more nights,"64,299","112,559",57.1%,
+Margin,"Outpatient billing setting, all","46,042","112,559",40.9%,
+Margin,"Inpatient billing setting, all","66,517","112,559",59.1%,
+Margin,"Zero postoperative nights, all","14,715","112,559",13.1%,
+Margin,"One or more postoperative nights, all","97,844","112,559",86.9%,
+Headline disagreement,Cases labelled outpatient that stayed at least one night,"33,545","46,042",72.9%,
+Sensitivity,Outpatient label among patients truly discharged the same day,"12,497","14,715",84.9%,84.3–85.5
+Specificity,Inpatient label among patients who stayed at least one night,"64,299","97,844",65.7%,65.4–66.0
+Positive predictive value,Truly same day among patients labelled outpatient,"12,497","46,042",27.1%,26.7–27.6
+Negative predictive value,Stayed at least one night among patients labelled inpatient,"64,299","66,517",96.7%,96.5–96.8
+Raw agreement,Label and length of stay agree,"76,796","112,559",68.2%,68.0–68.5
+Disagreement,Label and length of stay disagree,"35,763","112,559",31.8%,
+Cohen kappa,Chance-corrected agreement,,"112,559",0.266,0.261–0.271

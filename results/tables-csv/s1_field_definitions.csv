@@ -1,0 +1,52 @@
+Section,Item,Definition,Source field or code set,Years the value applies
+Timed outcomes,Hematoma requiring reoperation,"Hematoma requiring unplanned reoperation within 30 days. Timing is the recorded days to event, counted from the principal operation.",RETORPODAYS,2012 to 2024
+Timed outcomes,Any unplanned reoperation,"Any unplanned reoperation within 30 days. Timing is the recorded days to event, counted from the principal operation.",RETORPODAYS,2012 to 2024
+Timed outcomes,Unplanned reintubation,"Unplanned reintubation. Timing is the recorded days to event, counted from the principal operation.",DREINTUB,2012 to 2024
+Timed outcomes,Ventilator dependence beyond 48 hours,"Mechanical ventilation for more than 48 hours. Timing is the recorded days to event, counted from the principal operation.",DFAILWEAN,2012 to 2024
+Timed outcomes,Pneumonia,"Postoperative pneumonia. Timing is the recorded days to event, counted from the principal operation.",DOUPNEUMO,2012 to 2024
+Timed outcomes,Unplanned readmission,"Unplanned readmission within 30 days. Timing is the recorded days to event, counted from the principal operation.",READMPODAYS1,2012 to 2024
+Timed outcomes,Death within 30 days,"Death within 30 days of surgery. Timing is the recorded days to event, counted from the principal operation.",DOPERTOD,2012 to 2024
+Timed outcomes,Composite airway morbidity,"Composite airway morbidity. Timing is the earliest of the component days to event, counted from the principal operation.","DREINTUB, DFAILWEAN, RETORPODAYS",2012 to 2024
+Timed outcomes,"Postoperative length of stay, days","Days from the principal operation to discharge. The primary length-of-stay field, direct, present in every study year, and deliberately not limited to the 30-day follow-up window.",DOPTODIS,2012 to 2024
+Timed outcomes,Length-of-stay cross-check,Total hospital length of stay minus days from admission to operation. The independent cross-check on the primary field and never the analysis variable.,"TOTHLOS, HTOODAY",2012 to 2024
+Timed outcomes,Still in hospital beyond 30 days,Recorded as still admitted beyond postoperative day 30. Such a patient has no discharge inside the follow-up window.,STILLINHOSP,2012 to 2024
+Timed outcomes,Days from operation to second reoperation,Only the first event of each type carries a timing field. A second reoperation and a second through fifth readmission are timed; a third reoperation is not.,"RETOR2PODAYS, READMPODAYS2",2012 to 2024
+Procedure code sets,Principal procedure,"Anterior cervical discectomy and fusion, principal procedure code.","22551, 22554, 63075",2012 to 2024
+Procedure code sets,Additional fusion level,Each further occurrence across the ten concurrent procedure slots adds one fusion level.,22552,2012 to 2024
+Procedure code sets,Concurrent corpectomy or craniocervical arthrodesis,Exclusion.,"22548, 63081, 63082",2012 to 2024
+Procedure code sets,Concurrent posterior spinal decompression or instrumentation,"Exclusion. The honoured list carries a lumbar code and codes that are not cervical specific, so it is not described as posterior cervical.","22600, 22842, 22843, 22844, 63001, 63015, 63045, 63047",2012 to 2024
+Procedure code sets,Cervical disc arthroplasty,Exclusion.,22856,2012 to 2024
+Procedure code sets,Anterior cervical instrumentation,Descriptive marker.,"22845, 22846, 22847",2012 to 2024
+Procedure code sets,Reoperative tracheostomy,"Reoperative tracheostomy, read from the first reoperation slot, which is the implementation frozen inside the airway composite. Slot 1 identifies 24 patients and slots 1 and 2 together identify 30; the wider marker is reported here and is deliberately not in the composite. It is an exploratory marker with no literature precedent.",31600,2012 to 2024
+Hematoma ascertainment,Reoperation procedure arm,Unplanned reoperation procedure code in the first reoperation slot.,"10140, 20005, 21501, 35800",2012 to 2024
+Hematoma ascertainment,"Reoperation diagnosis arm, ninth revision","Unplanned reoperation diagnosis code, prefix match. The year range is the range in which the column is actually populated inside this cohort, measured rather than asserted.","998.11, 998.12",2012 to 2016
+Hematoma ascertainment,"Reoperation diagnosis arm, tenth revision","Unplanned reoperation diagnosis code, prefix match, plus the exact code M96.810. Definition in force: V2. The year range is measured inside this cohort.","G97.5, G97.6, L76.2, L76.3, M96.83, M96.84, T79.2XXA",2015 to 2024
+Hematoma ascertainment,"Seroma guard, ninth revision",Seroma-only codes are excluded and are tested before the hematoma families.,998.13,2012 to 2016
+Hematoma ascertainment,"Seroma guard, tenth revision","Seroma-only members of the hematoma families, excluded.","G97.63, G97.64, L76.33, L76.34, M96.842, M96.843",2015 to 2024
+Hematoma ascertainment,Union rule,The three arms are combined ungated across years. A year-gated rule would lose a real event ascertained only by the ninth-revision arm inside the overlap years.,"REOPORCPT1, REOPORICD91, REOPOR1ICD101",2012 to 2024
+Hematoma ascertainment,Code set V0,"Original code set, retained as a sensitivity analysis. Sensitivity.","G97.6, L76.2, L76.3, M96.810, M96.820, M96.83, M96.84, T79.2XXA, T81.0",2015 to 2024
+Hematoma ascertainment,Code set V1,"Error-corrected code set, hematoma arm only. Sensitivity.","G97.6, L76.2, L76.3, M96.810, M96.83, M96.84, T79.2XXA",2015 to 2024
+Hematoma ascertainment,Code set V2,Error-corrected code set plus the nervous-system hemorrhage arm. Primary.,"G97.5, G97.6, L76.2, L76.3, M96.810, M96.83, M96.84, T79.2XXA",2015 to 2024
+Discharge destination level map,Home,Home. Collapsed to Home (Home).,DISCHDEST,2012-2020
+Discharge destination level map,Home/Permanent Residence,Home. Collapsed to Home (Home).,DISCHDEST,2021-2024
+Discharge destination level map,Rehab,Rehabilitation facility. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,"Skilled Care, Not Home",Skilled nursing facility. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Facility Which was Home,Facility that was home before surgery. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Separate Acute Care,Separate acute care hospital. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Unskilled Facility Not Home,Unskilled facility. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Hospice,Hospice. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Multi-level Senior Community,Multi-level senior community. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2012-2020
+Discharge destination level map,Other Facility,Other facility. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2021-2024
+Discharge destination level map,Acute Care Hospital,Acute care hospital. Collapsed to Facility (Rehabilitation or skilled nursing facility).,DISCHDEST,2021-2024
+Discharge destination level map,Against Medical Advice (AMA),Against medical advice. Collapsed to Other (Other or unknown destination).,DISCHDEST,2012-2024
+Discharge destination level map,Expired,Died before discharge. Collapsed to Other (Other or unknown destination).,DISCHDEST,2012-2024
+Discharge destination level map,Unknown,Unknown or not reported. Collapsed to Other (Other or unknown destination).,DISCHDEST,2012-2024
+Discharge destination level map,Collapse rule,"Home discharge is defined by this explicit map and never by matching the substring Home, which would fold the facility that was the patient's home before surgery into the home group. An unmapped level raises.",DISCHDEST,2012 to 2024
+Billing setting,Inpatient,Inpatient billing setting. It is a billing label and never a length of stay.,INOUT,2012 to 2024
+Billing setting,Outpatient,Outpatient billing setting. It is a billing label and never a length of stay.,INOUT,2012 to 2024
+Analysis conventions,Time zero,"The day of the principal operation, postoperative day 0.",,2012 to 2024
+Analysis conventions,Estimator,"Aalen-Johansen cumulative incidence with death as the competing event, a step function on integer postoperative days.",,2012 to 2024
+Analysis conventions,Censoring,"Administrative at postoperative day 30, non-informative, complete by construction. No estimate extends past day 30.",,2012 to 2024
+Analysis conventions,Stratum comparison,Gray's test on the cumulative incidence functions. A stratum with fewer than 10 events is suppressed and reported with its count.,,2012 to 2024
+Analysis conventions,Tie convention,An event recorded on the same postoperative day as discharge counts as occurring before discharge.,,2012 to 2024
+Analysis conventions,Days to event handling,"A days-to-event value is used only when it is an integer in the range 0 to 30. Anything else is counted and set to missing rather than clipped or dropped. The rule was applied once, when the analytic dataset was built, and affected no value in this cohort. It does not apply to the length of stay.",,2012 to 2024

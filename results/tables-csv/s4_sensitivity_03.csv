@@ -1,0 +1,28 @@
+Sensitivity analysis,Outcome,Population,n,"Events, n","Day 30 cumulative incidence, % (95% CI)",Median postoperative day (interquartile range),"Events on postoperative day 0 or 1, n (%)","Primary analysis day 30 cumulative incidence, %","Difference from primary, percentage points",denominator
+One minus Kaplan-Meier instead of Aalen-Johansen,Hematoma requiring reoperation,"Analytic cohort, 2012 to 2024","112,642",541,0.480% (0.441–0.521),,,0.479%,0.0001,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Any unplanned reoperation,"Analytic cohort, 2012 to 2024","112,642","1,657",1.467% (1.398–1.538),,,1.466%,0.0009,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Unplanned reintubation,"Analytic cohort, 2012 to 2024","112,642",483,0.429% (0.392–0.468),,,0.429%,0.0001,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Ventilator dependence beyond 48 hours,"Analytic cohort, 2012 to 2024","112,642",348,0.309% (0.278–0.343),,,0.309%,0.0001,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Pneumonia,"Analytic cohort, 2012 to 2024","112,642",710,0.630% (0.585–0.677),,,0.629%,0.0003,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Unplanned readmission,"Analytic cohort, 2012 to 2024","112,642","3,399",3.011% (2.912–3.112),,,3.009%,0.0021,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Death within 30 days,"Analytic cohort, 2012 to 2024","112,642",213,0.189% (0.165–0.216),,,0.189%,0.0000,"112,642"
+One minus Kaplan-Meier instead of Aalen-Johansen,Composite airway morbidity,"Analytic cohort, 2012 to 2024","112,642",608,0.540% (0.498–0.584),,,0.540%,0.0001,"112,642"
+Restricted to the tenth-revision coding era,Hematoma requiring reoperation,Operative years 2016 to 2024,"86,222",400,0.464% (0.420–0.511),,,0.479%,-0.0155,"86,222"
+Restricted to the tenth-revision coding era,Any unplanned reoperation,Operative years 2016 to 2024,"86,222","1,286",1.489% (1.410–1.572),,,1.466%,0.0235,"86,222"
+Restricted to the tenth-revision coding era,Unplanned reintubation,Operative years 2016 to 2024,"86,222",361,0.419% (0.377–0.464),,,0.429%,-0.0101,"86,222"
+Restricted to the tenth-revision coding era,Ventilator dependence beyond 48 hours,Operative years 2016 to 2024,"86,222",255,0.296% (0.261–0.334),,,0.309%,-0.0132,"86,222"
+Restricted to the tenth-revision coding era,Pneumonia,Operative years 2016 to 2024,"86,222",547,0.634% (0.583–0.689),,,0.629%,0.0050,"86,222"
+Restricted to the tenth-revision coding era,Unplanned readmission,Operative years 2016 to 2024,"86,222","2,637",3.053% (2.939–3.169),,,3.009%,0.0439,"86,222"
+Restricted to the tenth-revision coding era,Death within 30 days,Operative years 2016 to 2024,"86,222",161,0.187% (0.160–0.217),,,0.189%,-0.0024,"86,222"
+Restricted to the tenth-revision coding era,Composite airway morbidity,Operative years 2016 to 2024,"86,222",450,0.522% (0.476–0.572),,,0.540%,-0.0179,"86,222"
+Restricted to the era in which elective status came from the emergency-case field,Hematoma requiring reoperation,Operative years 2012 to 2020,"76,445",358,0.467% (0.421–0.517),,,0.479%,-0.0124,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Any unplanned reoperation,Operative years 2012 to 2020,"76,445","1,136",1.478% (1.395–1.566),,,1.466%,0.0125,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Unplanned reintubation,Operative years 2012 to 2020,"76,445",355,0.464% (0.418–0.515),,,0.429%,0.0356,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Ventilator dependence beyond 48 hours,Operative years 2012 to 2020,"76,445",252,0.330% (0.291–0.372),,,0.309%,0.0207,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Pneumonia,Operative years 2012 to 2020,"76,445",484,0.632% (0.578–0.690),,,0.629%,0.0024,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Unplanned readmission,Operative years 2012 to 2020,"76,445","2,276",2.964% (2.846–3.086),,,3.009%,-0.0444,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Death within 30 days,Operative years 2012 to 2020,"76,445",143,0.187% (0.158–0.220),,,0.189%,-0.0020,"76,445"
+Restricted to the era in which elective status came from the emergency-case field,Composite airway morbidity,Operative years 2012 to 2020,"76,445",443,0.580% (0.528–0.635),,,0.540%,0.0397,"76,445"
+Hematoma code set V2 (primary),Hematoma requiring reoperation,"Analytic cohort, 2012 to 2024","112,642",541,0.479% (0.440–0.521),2 (1–7),234 (43.3%),0.479%,0.0000,540
+Hematoma code set V1,Hematoma requiring reoperation,"Analytic cohort, 2012 to 2024","112,642",534,0.473% (0.434–0.515),2 (1–7),232 (43.5%),0.479%,-0.0062,533
+Hematoma code set V0,Hematoma requiring reoperation,"Analytic cohort, 2012 to 2024","112,642",537,0.476% (0.437–0.517),2 (1–7),233 (43.5%),0.479%,-0.0036,536

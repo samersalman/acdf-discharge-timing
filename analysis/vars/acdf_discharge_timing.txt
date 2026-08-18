@@ -1,0 +1,288 @@
+# =============================================================================
+# vars/acdf_discharge_timing.txt  --  export variable list for the ACDF
+# discharge-timing study
+#
+# This file is the parent project's vars/acdf_hematoma.txt with EXACTLY ONE
+# substantive change: INOUT is added. 135 -> 136 requested columns. Every other
+# entry, and the order of every entry, is unchanged, so the two projects pull the
+# same cohort out of the same warehouse and cannot fork. See .build_facts.md
+# section 4.
+#
+# Every code below was VERIFIED to exist in nsqip-db/parquet/main/main_<YYYY>.parquet
+# and on the curated `main` view, for at least one year in 2012-2024, on 2026-07-30.
+# Years-present and cohort-level null percentages are in v1/.build_facts.md section 3.
+#
+# NOT LISTED, BY DESIGN -- export.py auto-injects these seven and listing any of
+# them here is an ERROR:
+#     CASEID  PUFYEAR  OPERYR  CPT  PRNCPTX  SOURCE_FAMILY  CASE_UID
+#
+# Usage:
+#   python3 export.py --project acdf-discharge-timing --family main \
+#     --cpt 22551 --cpt 22554 --cpt 63075 --years 2012-2024 \
+#     --var-file <this file>
+#
+# !! THE THREE CPT CODES ABOVE ARE A PASTE-READY INVOCATION, NOT A SOURCE OF TRUTH. !!
+# v1/CLAUDE.md hard rule 5: `cpt_acdf.py` is the ONLY place in this project where a CPT or
+# ICD code may be written as a literal. `01_export_cohort.py` MUST build the --cpt arguments
+# by importing them:
+#
+#     from cpt_acdf import PRINCIPAL_CPTS
+#     args = [a for c in sorted(PRINCIPAL_CPTS) for a in ("--cpt", c)]
+#
+# Hard-coding '22551', '22554', '63075' (or any other code) in `01_export_cohort.py` is a
+# defect even though it would run. The codes appearing in THIS file are inert comments in a
+# plain-text variable list that no interpreter reads, and the same applies to every other
+# CPT / ICD code quoted in a comment below: they are documentation of what was measured, and
+# a step that needs one imports it from `cpt_acdf`.
+#
+# DELIBERATE OMISSIONS -- do not "helpfully" add these back. Each was checked:
+#   FNSTATUS1  exists 2012-2014 but is 100% NULL DATABASE-WIDE in all three years
+#              (0 / 543,885 · 0 / 651,940 · 0 / 750,937). A dead column. Use FNSTATUS2.
+#   PRPT       exists 2012-2020 but is 99.06% NULL in this cohort and populated in
+#              only 4 years (2012, 2014-2016). Unusable. PRINR is the INR source.
+#   HDISDT     the name looks like a discharge date; the values are a four-digit
+#              YEAR (2015, 2016, ...). Never a length of stay. Use DOPTODIS.
+#   RENAFAIL / RENAINSF / OPRENAFL   documented definition flips and a 2021 hole.
+#              Not needed by the plan; omitted rather than mis-pooled.
+#   READMUNRELICD91-95 / READMUNRELSUSP1-5   100% NULL in this cohort after 2017.
+#   PRWBC / PRCREAT   exist and are well populated (90.4% / 88.1% on the analytic
+#              cohort) but the plan uses neither. Omitted, and their labels were
+#              correspondingly REMOVED from variable_dict.py in the Batch 1 review, so
+#              the label layer and this list agree. If a reviewer asks for either, add it
+#              HERE first (the bundle width changes), re-run 01, then re-add the label.
+#
+# NOTE: INOUT is omitted from the parent project's list and is PRESENT here. It is the
+# one and only difference between the two files. See the block below where it is listed.
+# =============================================================================
+
+
+# --- Structure: concurrent and additional procedure codes --------------------
+# OTHERCPT1-10 drive fusion-level counting (repeated 22552), anterior
+# instrumentation (22845-22847), and the corpectomy/posterior/arthroplasty
+# exclusions. The exclusion step reproduces off OTHERCPT1-10 ALONE, on both ladders:
+# 113,469 (Gate B, primary) and 113,411 (Gate A, --replicate-plan). Also scanning
+# CONCPT1-10 gives 113,323 / 113,265 and is NOT the definition.
+# CONCPT1-10 (procedures by a second surgeon) are >=97% NULL; carried for a
+# sensitivity only. All 20 columns exist in all 13 years.
+OTHERCPT1
+OTHERCPT2
+OTHERCPT3
+OTHERCPT4
+OTHERCPT5
+OTHERCPT6
+OTHERCPT7
+OTHERCPT8
+OTHERCPT9
+OTHERCPT10
+CONCPT1
+CONCPT2
+CONCPT3
+CONCPT4
+CONCPT5
+CONCPT6
+CONCPT7
+CONCPT8
+CONCPT9
+CONCPT10
+
+
+# --- Eligibility -------------------------------------------------------------
+# AGE arrives from the curated view as SMALLINT with '90+' already mapped to 90.
+# EMERGNCY / ELECTSURG stop at 2020; CASETYPE starts at 2021. All three are
+# 0% NULL inside their own year range in this cohort. See .build_facts.md sec. 5.
+AGE
+EMERGNCY
+ELECTSURG
+CASETYPE
+ASACLAS
+PRSEPIS
+
+
+# --- Demographics and anthropometrics ----------------------------------------
+# RACE_NEW carries 22 level strings in this cohort with vocabulary drift at 2020
+# and 2021. ETHNICITY_HISPANIC is NULL for 221 rows in 2012 only.
+SEX
+RACE_NEW
+ETHNICITY_HISPANIC
+HEIGHT
+WEIGHT
+
+
+# --- Comorbidities -----------------------------------------------------------
+# STEROID and HXCHF both carry definition breaks; see .build_facts.md sec. 6.
+FNSTATUS2
+DIABETES
+SMOKE
+HXCOPD
+HXCHF
+HYPERMED
+DIALYSIS
+STEROID
+BLEEDDIS
+
+
+# --- Preoperative labs -------------------------------------------------------
+# PRINR / PRPLATE / PRPTT are the three coagulopathy-burden inputs.
+# PRHCT = preoperative anemia. PRALBUM is 55.0% NULL; a covariate, not a driver.
+PRHCT
+PRALBUM
+PRINR
+PRPLATE
+PRPTT
+
+
+# --- Operative ---------------------------------------------------------------
+# ANESTHES is 99.7% 'General' in this cohort and carries almost no variance.
+# PODIAG/PODIAGTX (ICD-9 era) and PODIAG10/PODIAGTX10 (2014-2024) are the only
+# indication fields; PODIAG10 is 21.4% NULL cohort-wide, 0% NULL from 2015 on.
+SURGSPEC
+OPTIME
+WORKRVU
+ANESTHES
+PODIAG
+PODIAGTX
+PODIAG10
+PODIAGTX10
+
+
+# --- Outcome: unplanned reoperation ------------------------------------------
+# NOTE THE ASYMMETRIC NAMING. Reoperation 1's ICD-9 column has NO '1' after
+# REOPOR (REOPORICD91) but its ICD-10 column DOES (REOPOR1ICD101). Reoperation 2
+# uses REOPOR2*. There is exactly ONE CPT slot per reoperation; REOPORCPT2 does
+# not exist. REOPERATION3 is a FLAG ("More than 2 unplanned reoperations") and
+# has no CPT or ICD companion at all.
+REOPERATION1
+REOPORCPT1
+REOPORICD91
+REOPOR1ICD101
+RETORPODAYS
+RETORRELATED
+REOPERATION2
+REOPOR2CPT1
+REOPOR2ICD91
+REOPOR2ICD101
+RETOR2PODAYS
+RETOR2RELATED
+REOPERATION3
+RETURNOR
+
+
+# --- Outcome: readmission -----------------------------------------------------
+# UNPLANNEDREADMISSION1 is populated ONLY when READMISSION1 = 'Yes'; it is NULL
+# for 96.9% of the cohort and NULL does NOT mean "not unplanned".
+# READMRELICD101 is the dysphagia (R13.x) source, populated 2014-2024.
+READMISSION1
+READMISSION2
+READMISSION3
+READMISSION4
+READMISSION5
+UNPLANNEDREADMISSION1
+UNPLANNEDREADMISSION2
+UNPLANNEDREADMISSION3
+UNPLANNEDREADMISSION4
+UNPLANNEDREADMISSION5
+READMPODAYS1
+READMPODAYS2
+READMPODAYS3
+READMPODAYS4
+READMPODAYS5
+READMRELATED1
+READMRELATED2
+READMRELATED3
+READMRELATED4
+READMRELATED5
+READMSUSPREASON1
+READMSUSPREASON2
+READMSUSPREASON3
+READMSUSPREASON4
+READMSUSPREASON5
+READMRELICD91
+READMRELICD92
+READMRELICD93
+READMRELICD94
+READMRELICD95
+READMRELICD101
+READMRELICD102
+READMRELICD103
+READMRELICD104
+READMRELICD105
+READMUNRELICD101
+READMUNRELICD102
+READMUNRELICD103
+READMUNRELICD104
+READMUNRELICD105
+
+
+# --- Outcome: airway and respiratory ------------------------------------------
+# REINTUB / FAILWEAN / OUPNEUMO are NOT Yes/No. Their levels are
+# 'No Complication' vs 'Unplanned Intubation' / 'On Ventilator greater than 48
+# Hours' / 'Pneumonia'. Recode as <> 'No Complication'.
+REINTUB
+DREINTUB
+FAILWEAN
+DFAILWEAN
+OUPNEUMO
+DOUPNEUMO
+
+
+# --- Outcome: bleeding and transfusion ----------------------------------------
+# OTHBLEED level string drifts: 'Transfusions/Intraop/Postop' (2012-2021, 2024)
+# vs 'Blood Transfusion' (2022-2023). Same event. Recode as <> 'No Complication'.
+OTHBLEED
+DOTHBLEED
+TRANSFUS
+
+
+# --- Outcome: mortality, length of stay, disposition --------------------------
+# There is NO `DEATH` column anywhere in the warehouse. 30-day mortality must be
+# derived from DOPERTOD (days operation -> death, range 0-30) and/or YRDEATH.
+# DOPTODIS is TRUE POSTOPERATIVE length of stay (days operation -> discharge) and
+# is the analysis length-of-stay variable everywhere in this project. TOTHLOS is
+# TOTAL stay and includes the HTOODAY preoperative days; TOTHLOS - HTOODAY is the
+# independent cross-check on DOPTODIS and never the analysis variable.
+#
+# INOUT  THE ONE COLUMN THIS FILE ADDS TO THE PARENT'S LIST. Read all three points
+#        before touching it:
+#        (a) INOUT is the NSQIP inpatient/outpatient BILLING label, not a discharge
+#            measure. Two levels, 'Inpatient' and 'Outpatient', 0% NULL in this
+#            cohort (one SQL NULL row exists database-wide, outside 2012-2024 ACDF).
+#            It records how the case was booked, not how long the patient stayed.
+#        (b) It is DELIBERATELY BANNED in the parent project. `projects/ACDF-hematoma/`
+#            omits it from vars/acdf_hematoma.txt and hard-bans it in that project's
+#            01_export_cohort.py preflight, because framing rule 3 of that project's
+#            v1/CLAUDE.md ("true postoperative length of stay only; never the INOUT
+#            billing label") keeps it out of that manuscript entirely. That ban is
+#            still in force there and this file does not change it.
+#        (c) It is exported HERE because the measurement critique in PLAN.md section
+#            6.4 is one of this paper's two headline findings and cannot be done
+#            without it: the whole point is to cross-tabulate the billing label
+#            against true postoperative length of stay, quantify the disagreement
+#            year by year, and re-estimate a published outpatient-versus-inpatient
+#            comparison both ways. Removing INOUT from this list silently deletes
+#            that finding, which is why 01_export_cohort.py asserts it is PRESENT.
+YRDEATH
+DOPERTOD
+DOPTODIS
+INOUT
+HTOODAY
+TOTHLOS
+STILLINHOSP
+DISCHDEST
+
+
+# --- Outcome: other 30-day morbidity ------------------------------------------
+# Not required by the plan. Every one verified present in all 13 years at 0.00%
+# NULL in the analytic cohort. Carried so a reviewer request for a fuller Table 1
+# or complication panel does not force a re-export.
+SUPINFEC
+WNDINFD
+ORGSPCSSI
+DEHIS
+PULEMBOL
+OTHDVT
+CDARREST
+CDMI
+CNSCVA
+URNINFEC
+OTHSYSEP
+OTHSESHOCK

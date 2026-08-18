@@ -1,0 +1,38 @@
+Stratifier,Stratum,Patients,Composite events,denominator,Cumulative incidence of the composite to day 30 (%),Risk threshold,Residual-risk threshold day,"Residual-risk threshold day, 95% confidence interval",Residual risk at that day (%),"Residual risk, 95% confidence interval (%)",Patients event free and alive at the start of that day,Threshold reached within 30 days,Residual risk remains below the threshold through day 30
+Overall,All patients,"112,642","1,015","112,642",0.901%,1%,0,0 to 0,0.901%,0.847–0.953,"112,642",Yes,Yes
+Overall,All patients,"112,642","1,015","112,642",0.901%,0.5%,3,3 to 3,0.448%,0.407–0.484,"112,114",Yes,Yes
+Overall,All patients,"112,642","1,015","112,642",0.901%,0.25%,7,6 to 8,0.237%,0.208–0.266,"111,857",Yes,Yes
+Age group,18–49 years,"34,191",140,"34,191",0.409%,1%,0,0 to 0,0.409%,0.339–0.474,"34,191",Yes,Yes
+Age group,18–49 years,"34,191",140,"34,191",0.409%,0.5%,0,0 to 0,0.409%,0.339–0.474,"34,191",Yes,Yes
+Age group,18–49 years,"34,191",140,"34,191",0.409%,0.25%,2,1 to 2,0.199%,0.152–0.246,"34,119",Yes,Yes
+Age group,50–64 years,"50,845",455,"50,845",0.895%,1%,0,0 to 0,0.895%,0.818–0.974,"50,845",Yes,Yes
+Age group,50–64 years,"50,845",455,"50,845",0.895%,0.5%,3,3 to 4,0.474%,0.413–0.535,"50,625",Yes,Yes
+Age group,50–64 years,"50,845",455,"50,845",0.895%,0.25%,7,6 to 8,0.244%,0.200–0.287,"50,505",Yes,Yes
+Age group,65–74 years,"20,946",278,"20,946",1.327%,1%,2,1 to 2,0.863%,0.734–0.993,"20,846",Yes,Yes
+Age group,65–74 years,"20,946",278,"20,946",1.327%,0.5%,5,4 to 7,0.496%,0.405–0.597,"20,766",Yes,Yes
+Age group,65–74 years,"20,946",278,"20,946",1.327%,0.25%,10,8 to 12,0.217%,0.155–0.286,"20,696",Yes,Yes
+Age group,75 years or older,"6,660",142,"6,660",2.132%,1%,4,3 to 5,0.868%,0.640–1.082,"6,565",Yes,Yes
+Age group,75 years or older,"6,660",142,"6,660",2.132%,0.5%,8,6 to 12,0.490%,0.336–0.673,"6,533",Yes,Yes
+Age group,75 years or older,"6,660",142,"6,660",2.132%,0.25%,14,10 to 19,0.230%,0.123–0.354,"6,511",Yes,Yes
+ASA physical status class,Class 1 or 2,"58,815",291,"58,815",0.495%,1%,0,0 to 0,0.495%,0.437–0.549,"58,815",Yes,Yes
+ASA physical status class,Class 1 or 2,"58,815",291,"58,815",0.495%,0.5%,0,0 to 1,0.495%,0.437–0.549,"58,815",Yes,Yes
+ASA physical status class,Class 1 or 2,"58,815",291,"58,815",0.495%,0.25%,3,2 to 4,0.230%,0.193–0.268,"58,656",Yes,Yes
+ASA physical status class,Class 3 or 4,"53,827",724,"53,827",1.345%,1%,2,2 to 3,0.924%,0.847–1.006,"53,594",Yes,Yes
+ASA physical status class,Class 3 or 4,"53,827",724,"53,827",1.345%,0.5%,5,5 to 6,0.482%,0.424–0.536,"53,338",Yes,Yes
+ASA physical status class,Class 3 or 4,"53,827",724,"53,827",1.345%,0.25%,10,9 to 11,0.222%,0.184–0.263,"53,179",Yes,Yes
+Fusion levels,1 level,"62,889",490,"62,889",0.779%,1%,0,0 to 0,0.779%,0.714–0.852,"62,889",Yes,Yes
+Fusion levels,1 level,"62,889",490,"62,889",0.779%,0.5%,3,2 to 3,0.386%,0.339–0.437,"62,632",Yes,Yes
+Fusion levels,1 level,"62,889",490,"62,889",0.779%,0.25%,6,5 to 7,0.238%,0.203–0.278,"62,532",Yes,Yes
+Fusion levels,2 levels,"43,470",428,"43,470",0.985%,1%,0,0 to 1,0.985%,0.895–1.077,"43,470",Yes,Yes
+Fusion levels,2 levels,"43,470",428,"43,470",0.985%,0.5%,3,3 to 4,0.490%,0.425–0.555,"43,250",Yes,Yes
+Fusion levels,2 levels,"43,470",428,"43,470",0.985%,0.25%,7,6 to 8,0.248%,0.204–0.297,"43,140",Yes,Yes
+Fusion levels,3 or more levels,"6,283",97,"6,283",1.544%,1%,3,1 to 3,0.770%,0.577–0.979,"6,232",Yes,Yes
+Fusion levels,3 or more levels,"6,283",97,"6,283",1.544%,0.5%,6,4 to 9,0.483%,0.321–0.662,"6,213",Yes,Yes
+Fusion levels,3 or more levels,"6,283",97,"6,283",1.544%,0.25%,11,8 to 15,0.210%,0.097–0.339,"6,194",Yes,Yes
+Sex,Male,"56,387",667,"56,387",1.183%,1%,1,1 to 2,0.969%,0.888–1.045,"56,264",Yes,Yes
+Sex,Male,"56,387",667,"56,387",1.183%,0.5%,5,4 to 5,0.427%,0.374–0.483,"55,943",Yes,Yes
+Sex,Male,"56,387",667,"56,387",1.183%,0.25%,9,8 to 10,0.220%,0.184–0.260,"55,812",Yes,Yes
+Sex,Female,"56,220",348,"56,220",0.619%,1%,0,0 to 0,0.619%,0.557–0.687,"56,220",Yes,Yes
+Sex,Female,"56,220",348,"56,220",0.619%,0.5%,1,1 to 2,0.465%,0.412–0.518,"56,131",Yes,Yes
+Sex,Female,"56,220",348,"56,220",0.619%,0.25%,4,3 to 5,0.245%,0.207–0.288,"56,001",Yes,Yes
+Sex,Non-binary,35,0,35,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed

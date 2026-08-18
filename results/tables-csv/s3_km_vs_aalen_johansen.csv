@@ -1,0 +1,9 @@
+Outcome,"Events, n","Competing deaths, n","Aalen-Johansen cumulative incidence at day 30, % (95% CI)","One minus Kaplan-Meier at day 30, % (95% CI)","Absolute difference, percentage points","Relative difference, %",denominator
+Hematoma requiring reoperation,541,208,0.479% (0.440–0.521),0.480% (0.441–0.521),0.0001,0.03,"112,642"
+Any unplanned reoperation,"1,657",190,1.466% (1.397–1.537),1.467% (1.398–1.538),0.0009,0.06,"112,642"
+Unplanned reintubation,483,130,0.429% (0.392–0.468),0.429% (0.392–0.468),0.0001,0.02,"112,642"
+Ventilator dependence beyond 48 hours,348,168,0.309% (0.278–0.343),0.309% (0.278–0.343),0.0001,0.04,"112,642"
+Pneumonia,710,156,0.629% (0.585–0.677),0.630% (0.585–0.677),0.0003,0.04,"112,642"
+Unplanned readmission,"3,399",171,3.009% (2.910–3.110),3.011% (2.912–3.112),0.0021,0.07,"112,642"
+Death within 30 days,213,0,0.189% (0.165–0.216),0.189% (0.165–0.216),0.0000,0.00,"112,642"
+Composite airway morbidity,608,120,0.540% (0.498–0.584),0.540% (0.498–0.584),0.0001,0.02,"112,642"

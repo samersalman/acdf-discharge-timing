@@ -1,0 +1,17 @@
+# Analysis dependencies for the ACDF discharge-timing study.
+#
+# IMPORTANT, PLEASE READ BEFORE CLAIMING AN EXACT REPRODUCTION.
+# The published run used CPython 3.14 (recorded in the pipeline run log). That
+# interpreter's package versions were NOT recorded at run time and its
+# site-packages has since been cleared, so the exact versions behind the
+# published numbers are not recoverable. The pins below are a verified-working
+# set under CPython 3.12.10. Cumulative-incidence and competing-risks results can
+# move slightly between lifelines releases, so please report the versions you
+# actually used alongside any reproduction.
+
+pandas==2.3.3
+numpy==2.3.5
+scipy==1.17.1
+statsmodels==0.14.6
+lifelines==0.29.0
+pyarrow==23.0.0
