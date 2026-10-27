@@ -2,14 +2,14 @@
 
 This module is the ONLY sanctioned source of user-visible text for variable names and
 category levels in this project, the only definition of the project seed, and the SINGLE
-SOURCE OF TRUTH for the `DISCHDEST` and `INOUT` level maps (`PLAN.md` 11.1, `CLAUDE.md`
-section 3). It is ported from `projects/ACDF-hematoma/v1/variable_dict.py`; `VarSpec`,
+SOURCE OF TRUTH for the `DISCHDEST` and `INOUT` level maps. It is ported from the
+companion hematoma project's `variable_dict.py`; `VarSpec`,
 `short` / `prose` / `unit` / `var_type`, `pretty`, `pretty_level`, `has_snake_case`,
 `has_em_dash`, `EN_DASH` and the `fmt_*` family are carried over with their house
 behaviour. `LABELS`, `SECTIONS`, the contract constants and every `*_PRETTY` dict are this
 study's own content.
 
-Four things every downstream script must honor (CLAUDE.md section 5):
+Four things every downstream script must honor:
 
 1. **No snake_case token may reach rendered text.** `pretty()` (variable names) and
    `pretty_level()` (category levels) are the ONLY entry points for user-visible text.
@@ -43,7 +43,7 @@ Naming convention this file pins down, and which `02_build_cohort.py` MUST follo
     a Unicode glyph). The display form lives on the right-hand side of a `*_PRETTY` dict,
     never in the data.
 
-What is NEW here relative to the parent, and why (see `derived/notes_variable_dict.md`):
+What is NEW here relative to the parent, and why:
 
   * `DISCHDEST_LEVEL_MAP` and `INOUT_LEVEL_MAP` move HERE and become the single source of
     truth. `02_build_cohort.py` imports them instead of carrying its own copy. Both raise
@@ -65,7 +65,7 @@ from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 # PROJECT SEED
 # ---------------------------------------------------------------------------
 SEED: int = 20260731
-"""The one project seed (CLAUDE.md section 5, hard rule 4). Defined here, imported
+"""The one project seed. Defined here, imported
 everywhere else. Never re-declare it, never pass a literal. It is 20260731, this
 project's own seed, and deliberately NOT the parent project's 20260730.
 
@@ -82,8 +82,8 @@ Callers must do BOTH of the following, because the two cover different random st
 `np.random.choice` inside a hand-rolled bootstrap.
 
 In THIS project exactly one step draws on the global NumPy stream: the 1,000-replicate
-conditional-risk bootstrap in `06_window.py`, which resamples patients within stratum
-(CLAUDE.md 6.5). Every other step is deterministic; they still call `np.random.seed(SEED)`
+conditional-risk bootstrap in `06_window.py`, which resamples patients within stratum.
+Every other step is deterministic; they still call `np.random.seed(SEED)`
 at the top so that adding a draw later cannot silently unseed the pipeline.
 """
 
@@ -102,7 +102,7 @@ class VarSpec(NamedTuple):
 # entries are generated from it immediately after the `LABELS` literal. It is repeated in
 # the contract-constants section header so a reader looking for the constants finds it.
 #
-# ORDER is the order `PLAN.md` 10.1 Figure 2 lists the panels: hematoma reoperation, any
+# ORDER is the order in which Figure 2 lists the panels: hematoma reoperation, any
 # unplanned reoperation, unplanned reintubation, ventilator beyond 48 hours, pneumonia,
 # unplanned readmission, death; then composite airway morbidity. `02` through `07` all
 # iterate THIS tuple, in THIS order, so a table row and a figure panel cannot disagree.
@@ -123,7 +123,7 @@ class TimedOutcome(NamedTuple):
                           also the `LABELS` key that names the outcome.
       pod_col             the postoperative-day column. `POD_<suffix>` for every outcome
                           EXCEPT hematoma, which reuses the parent's `HEMATOMA_POD`
-                          (.build_facts 5.2: do not create a second `POD_HEMATOMA` column).
+                          (do not create a second `POD_HEMATOMA` column).
       raw_fields          the raw NSQIP timing field(s) the day column is taken from. A
                           tuple because the airway composite is the earliest of three.
                           This is what supplement S2 tabulates missingness for.
@@ -131,8 +131,8 @@ class TimedOutcome(NamedTuple):
                           for this outcome. False for unplanned readmission only:
                           `READMPODAYS1` is days from the principal operation to
                           readmission, so a readmission is a post-discharge event BY
-                          CONSTRUCTION for anyone who was discharged (`PLAN.md` section 4
-                          readmission caveat, CLAUDE.md section 9 trap 19). Its curve
+                          CONSTRUCTION for anyone who was discharged (the readmission
+                          caveat). Its curve
                           SHAPE is reported; its post-discharge fraction is not.
     """
     key: str
@@ -213,7 +213,7 @@ def postdisch_column(key: str) -> str:
 
 
 def timed_both_column(key: str) -> str:
-    """Row 4 of the section 6.2 denominator ladder: both timing fields present."""
+    """Row 4 of the denominator ladder: both timing fields present."""
     return f"TIMED_BOTH_{_TIMED_BY_KEY[key].suffix}"
 
 
@@ -225,12 +225,12 @@ def timed_both_column(key: str) -> str:
 #   - DERIVED analytic columns produced by 02_build_cohort.py, UPPER_SNAKE and descriptive
 #     (LOS_CAT, AGE_CAT, WINDOW_COMP, POD_AIRWAY, ...).
 #
-# Short labels are written as reviewer-facing table stubs: clinically readable prose with
+# Short labels are written as reader-facing table stubs: clinically readable prose with
 # the unit attached where a unit exists. Prose labels are the lowercase mid-sentence form
 # used inside manuscript sentences.
 #
-# `.build_facts.md` section 5 is the authoritative list of what `02_build_cohort.py`
-# produces. Every name there has an entry here; neither file may invent a name the other
+# The column schema written by `02_build_cohort.py` is the authoritative list of what that
+# script produces. Every name there has an entry here; neither file may invent a name the other
 # does not have.
 # ---------------------------------------------------------------------------
 LABELS: Dict[str, VarSpec] = {
@@ -240,7 +240,7 @@ LABELS: Dict[str, VarSpec] = {
     # ======================================================================
     "AGE": VarSpec("Age, years", "age", "years", "continuous"),
     "AGE_PER10": VarSpec("Age, per decade", "age per additional decade", "decades", "continuous"),
-    # NEW: the locked age stratifier (CLAUDE.md 6.5). Levels are ASCII in the parquet.
+    # NEW: the locked age stratifier. Levels are ASCII in the parquet.
     "AGE_CAT": VarSpec("Age group", "age group", None, "categorical"),
     "SEX": VarSpec("Sex", "sex as recorded", None, "categorical"),
     "MALE": VarSpec("Male sex", "male sex", None, "binary"),
@@ -275,9 +275,9 @@ LABELS: Dict[str, VarSpec] = {
     "DIALYSIS": VarSpec("Dialysis dependence", "preoperative dialysis dependence", None, "binary"),
     # STEROID keeps its label because `02_build_cohort.py` still recodes the column (it is
     # in the ported BINARY_INPLACE roster and in FEATURE_PRETTY, and dropping either would
-    # fork the two cohorts). CLAUDE.md 6.7 excludes it from every ANALYSIS and every TABLE
-    # in this project: it carries an undated definition broadening and no analysis in
-    # `PLAN.md` section 6 needs it. It is therefore absent from SECTIONS and from every
+    # fork the two cohorts). It is excluded from every ANALYSIS and every TABLE
+    # in this project: it carries an undated definition broadening and no analysis
+    # needs it. It is therefore absent from SECTIONS and from every
     # contract constant below.
     "STEROID": VarSpec("Chronic corticosteroid or immunosuppressant use",
                        "chronic corticosteroid or immunosuppressant use", None, "binary"),
@@ -296,8 +296,8 @@ LABELS: Dict[str, VarSpec] = {
     #
     # These columns are still MATERIALISED by the ported `02_build_cohort.py`, so they keep
     # their labels. They are NOT in this project's Table 1 (SECTIONS below): the
-    # coagulation panel is the parent paper's exposure and CLAUDE.md 7.1 keeps every form
-    # of the coagulopathy-burden finding out of this manuscript.
+    # coagulation panel is the parent paper's exposure, and every form
+    # of the coagulopathy-burden finding is kept out of this manuscript.
     # ======================================================================
     "PRHCT": VarSpec("Preoperative hematocrit, %", "preoperative hematocrit", "%", "continuous"),
     "HCT": VarSpec("Preoperative hematocrit, %", "preoperative hematocrit", "%", "continuous"),
@@ -320,15 +320,15 @@ LABELS: Dict[str, VarSpec] = {
     # PRWBC and PRCREAT are deliberately NOT labelled. They exist in the warehouse but they
     # are NOT in `vars/acdf_discharge_timing.txt`, so no column by that name will ever exist
     # in `cohort_analytic.parquet`. A label for a column the pipeline cannot produce invites
-    # a step to reach for it. If a reviewer asks for them, add them to the export list FIRST
+    # a step to reach for it. To use them, add them to the export list FIRST
     # (which changes the bundle width `01_export_cohort.py` asserts), then re-add the labels.
     "ANEMIA": VarSpec("Preoperative anemia", "preoperative anemia", None, "binary"),
 
     # ======================================================================
     # COAGULOPATHY BURDEN
     # PORTED UNCHANGED and NEVER READ BY THIS PAPER. `02_build_cohort.py` still
-    # materialises these columns because dropping them would fork the two cohorts
-    # (CLAUDE.md 7.1); `03` through `08` never read them, and the coagulopathy-burden
+    # materialises these columns because dropping them would fork the two cohorts;
+    # `03` through `08` never read them, and the coagulopathy-burden
     # finding in every form belongs to the parent manuscript. The labels stay so the
     # builder's own schema documentation and `verify_numbers.py` can name the columns.
     # ======================================================================
@@ -375,9 +375,9 @@ LABELS: Dict[str, VarSpec] = {
     "ELECTIVE": VarSpec("Elective case", "elective case", None, "binary"),
     "HTOODAY": VarSpec("Days from admission to operation", "days from hospital admission to operation",
                        "days", "continuous"),
-    # NEW: the two coding-era sensitivity strata (.build_facts 5.2). `PLAN.md` 7.3 requires
-    # every timing result to be reported by coding era, and `PLAN.md` 6.6 requires an
-    # EMERGNCY-defined-elective-only sensitivity. Both are year flags, not date fields.
+    # NEW: the two coding-era sensitivity strata. Every timing result is reported by
+    # coding era, and an EMERGNCY-defined-elective-only sensitivity is also required.
+    # Both are year flags, not date fields.
     "ERA_ICD10": VarSpec("Operative year 2016 or later", "an operative year of 2016 or later",
                          None, "binary"),
     "ERA_EMERGNCY": VarSpec("Operative year 2020 or earlier", "an operative year of 2020 or earlier",
@@ -392,9 +392,9 @@ LABELS: Dict[str, VarSpec] = {
                                  "hematoma ascertained by reoperation procedure code only", None, "binary"),
     "HEMATOMA_ICD_ONLY": VarSpec("Hematoma, diagnosis-code definition",
                                  "hematoma ascertained by reoperation diagnosis code only", None, "binary"),
-    # Pre-specified code-set sensitivity definitions (cpt_acdf section 5a). The PRIMARY
+    # Pre-specified code-set sensitivity definitions (the variants defined in cpt_acdf). The PRIMARY
     # outcome is HEMATOMA above, which is cpt_acdf.HEMATOMA_DEFINITION = V2. Gate 2
-    # (CLAUDE.md 8.4) reports the V0 value beside the V2 value for the three carried-over
+    # reports the V0 value beside the V2 value for the three carried-over
     # numbers that depend on the hematoma outcome.
     "HEMATOMA_V0": VarSpec("Hematoma, original code set",
                            "hematoma under the original diagnosis code set", None, "binary"),
@@ -432,14 +432,14 @@ LABELS: Dict[str, VarSpec] = {
     "AIRWAY_COMP": VarSpec("Composite airway morbidity", "composite airway morbidity", None, "binary"),
     "REOP_TRACH": VarSpec("Reoperative tracheostomy", "tracheostomy performed at unplanned reoperation",
                           None, "binary"),
-    # NEW (.build_facts 5.2, CLAUDE.md 6.2 tracheostomy slot ruling). The composite keeps
+    # NEW. The composite keeps
     # the parent's frozen SLOT 1 implementation so the two papers cannot disagree; this
     # wider slots-1-and-2 marker exists for the ascertainment supplement ONLY and is not in
     # AIRWAY_COMP or WINDOW_COMP.
     "REOP_TRACH_SLOT12": VarSpec("Reoperative tracheostomy, first or second reoperation",
                                  "tracheostomy performed at the first or second unplanned reoperation",
                                  None, "binary"),
-    # NEW: the safe-discharge composite (CLAUDE.md 6.2). Hematoma OR the three-component
+    # NEW: the safe-discharge composite. Hematoma OR the three-component
     # airway composite. Pneumonia and unplanned readmission are deliberately EXCLUDED.
     "WINDOW_COMP": VarSpec("Composite hematoma or airway outcome",
                            "the composite of hematoma requiring reoperation and airway morbidity",
@@ -474,11 +474,11 @@ LABELS: Dict[str, VarSpec] = {
     # These are the raw fields every `POD_*` column is taken from, and they are what
     # supplement S2 tabulates: coverage, and in particular MISSINGNESS CONDITIONAL ON THE
     # EVENT FLAG BEING POSITIVE, which is the measurement that matters and is unmeasured
-    # today (CLAUDE.md 8.6). The database-wide percentages in `PLAN.md` 2.4 are EVENT
+    # today. The database-wide percentages quoted earlier for these fields are EVENT
     # RATES, not missingness rates; the manuscript must not confuse the two.
     #
     # RETOR2PODAYS and READMPODAYS2 are here because only the FIRST event of each type
-    # carries a timing field (CLAUDE.md section 9 trap 18). All analyses are
+    # carries a timing field. All analyses are
     # time-to-first-event; the second-occurrence day columns exist so `03` can state how
     # many patients have a second event whose timing is only partially observed.
     # ======================================================================
@@ -509,7 +509,7 @@ LABELS: Dict[str, VarSpec] = {
     # POSTOPERATIVE LENGTH OF STAY, DISCHARGE AND DISPOSITION
     #
     # `DOPTODIS` (days from operation to discharge) is the TRUE postoperative LOS column
-    # and is PRIMARY (`PLAN.md` 2.4, CLAUDE.md 8.7). `LOS_POSTOP` is the derived analytic
+    # and is PRIMARY. `LOS_POSTOP` is the derived analytic
     # column and `02_build_cohort.py` must source it from `DOPTODIS`, NEVER from
     # TOTHLOS - HTOODAY and NEVER from INOUT. The subtraction is materialised separately
     # as LOS_POSTOP_CHECK and is a CROSS-CHECK only: the parent measured 204 disagreements
@@ -517,9 +517,9 @@ LABELS: Dict[str, VarSpec] = {
     # reading exactly ONE DAY LONGER.
     #
     # `INOUT` is the BILLING label. It is NOT a discharge measure and it is NOT a length of
-    # stay. Its display labels say "billing" on purpose, so a reviewer reading a table
+    # stay. Its display labels say "billing" on purpose, so a reader of a table
     # cannot mistake it for time in hospital. Re-deriving "outpatient" from it is the
-    # measurement error this paper is about (`PLAN.md` 6.4). The parent project bans the
+    # measurement error this paper is about. The parent project bans the
     # column outright; this project needs it and lifts the ban for the critique only.
     # ======================================================================
     "TOTHLOS": VarSpec("Total hospital length of stay, days", "total hospital length of stay",
@@ -553,10 +553,10 @@ LABELS: Dict[str, VarSpec] = {
     # TIMING COLUMNS THAT ARE NOT PART OF THE EIGHT-OUTCOME ROSTER
     #
     # POD_TRACH / POD_TRACH12 support the ascertainment supplement's slot-1 versus
-    # slots-1-and-2 comparison (CLAUDE.md 6.2). POD_WINDOW is the safe-discharge
+    # slots-1-and-2 comparison. POD_WINDOW is the safe-discharge
     # composite's day and is what `06_window.py` reads; the composite has no
     # POSTDISCH_ or TIMED_BOTH_ column because it is not one of the eight timed
-    # outcomes in the section 6.2 denominator ladder.
+    # outcomes in the denominator ladder.
     # ======================================================================
     "POD_TRACH": VarSpec("Postoperative day of reoperative tracheostomy",
                          "postoperative day of reoperative tracheostomy", "days", "continuous"),
@@ -568,8 +568,7 @@ LABELS: Dict[str, VarSpec] = {
                           "days", "continuous"),
 
     # ======================================================================
-    # COHORT-FLOW AND DENOMINATOR FLAGS (Figure 1, and the denominators named in
-    # CLAUDE.md section 4.4)
+    # COHORT-FLOW AND DENOMINATOR FLAGS (Figure 1, and the analytic-cohort denominators)
     # ======================================================================
     "EXCL_CORPECTOMY": VarSpec("Concurrent corpectomy", "concurrent corpectomy", None, "binary"),
     "EXCL_POSTERIOR": VarSpec("Concurrent posterior spinal decompression or instrumentation",
@@ -643,7 +642,7 @@ del _o, _col, _generated, _existing
 # Lookup helpers (carried over unchanged)
 # ---------------------------------------------------------------------------
 def short(code: str) -> str:
-    """Reviewer-facing table stub for a variable. Raises KeyError if the key is unknown."""
+    """Reader-facing table stub for a variable. Raises KeyError if the key is unknown."""
     return LABELS[code].short_label
 
 
@@ -671,7 +670,7 @@ def var_type(code: str) -> str:
 # enforceable by search. Compare against EM_DASH, never against a pasted character.
 # ---------------------------------------------------------------------------
 EN_DASH = "–"        # U+2013. The range separator. CORRECT, do not strip it.
-EM_DASH = "\u2014"   # U+2014. BANNED in rendered text (CLAUDE.md section 5, hard rule 1).
+EM_DASH = "\u2014"   # U+2014. BANNED in rendered text.
 
 
 # A snake_case identifier is any alphanumeric-underscore-alphanumeric run. Matching
@@ -685,8 +684,8 @@ def has_snake_case(text) -> bool:
     """True if `text` still contains an unrendered snake_case identifier, anywhere.
 
     Guard for `07_figures.py` and `08_generate_manuscript.py`: assert this is False for
-    every string written into a figure, a table CSV, or the manuscript. CLAUDE.md section
-    5 hard rule 2 depends on it.
+    every string written into a figure, a table CSV, or the manuscript. The no-snake_case
+    rule depends on it.
 
     True:  "los_cat", "(levels_n)", "Timing (pod_reintub)", "[age_cat]",
            "Share (postdisch_hematoma)", "x=los_postop"
@@ -711,7 +710,7 @@ class RenderabilityError(ValueError):
 def assert_renderable(text, where: str = "") -> str:
     """Raise unless `text` is fit to be written into a figure, a table CSV, or the docx.
 
-    THE write-time gate for CLAUDE.md section 5 hard rules 1 and 2. Call it on every
+    THE write-time gate for the no-em-dash and no-snake_case rules. Call it on every
     string immediately before it reaches `outputs/v1/*.docx`, `figures/*` or
     `tables-csv/*`; it returns the string so it can be used inline:
 
@@ -762,7 +761,7 @@ def fmt_n_pct(n, total, decimals: int = 1) -> str:
 
     A zero denominator yields 0.0% rather than raising, because Table 1 legitimately has
     empty strata. Use fmt_n_pct_denom() wherever the denominator is not obvious from the
-    surrounding column header (CLAUDE.md section 4.4 and hard rules 7 and 8).
+    surrounding column header.
     """
     pct = (n / total * 100.0) if total else 0.0
     return f"{int(n):,} ({pct:.{decimals}f}%)"
@@ -773,17 +772,17 @@ def fmt_n_pct_denom(n, total, decimals: int = 1) -> str:
 
     fmt_n_pct_denom(541, 112642) -> "541/112,642 (0.5%)"
 
-    THIS is the default form in this project, not the bare fmt_n_pct(). CLAUDE.md hard
-    rule 8: no proportion is reported without stating the population it is a proportion
+    THIS is the default form in this project, not the bare fmt_n_pct(). Rule: no
+    proportion is reported without stating the population it is a proportion
     of, and in particular no post-discharge fraction may be printed without row 4 of its
     own denominator ladder beside it. This project carries several distinct denominators:
 
       * cohort ladder: import it from `cpt_acdf.COHORT_LADDER_N` (Gate B, primary) or
         `cpt_acdf.COHORT_LADDER_N_PLAN` (Gate A, reconciliation only). Never retype one.
       * the `INOUT = 'Outpatient'` subset: measured by `05_inout.py` on the ANALYTIC
-        cohort (CLAUDE.md 4.4 ruling), with the identified-cohort figure published beside
+        cohort, with the identified-cohort figure published beside
         it for reconciliation against the carried-over 47,713.
-      * one analysis denominator PER TIMED OUTCOME: row 4 of the section 6.2 ladder,
+      * one analysis denominator PER TIMED OUTCOME: row 4 of the denominator ladder,
         "events with BOTH the days-to-event field and the postoperative length of stay
         present". It is `TIMED_BOTH_<X>`, never "all events".
     """
@@ -878,13 +877,13 @@ def fmt_p(p: float, spaced: bool = True) -> str:
 # ---------------------------------------------------------------------------
 
 # FEATURE_PRETTY is PORTED FROM THE PARENT AND KEPT DELIBERATELY, even though this project
-# fits no hematoma model (CLAUDE.md 6.6). Two reasons:
+# fits no hematoma model. Two reasons:
 #   1. The ported `02_build_cohort.py` asserts at import that every column it recodes in
 #      place from Yes/No text to 0/1 is named here. Deleting the dict, or dropping a key
 #      from it, changes which raw columns get recoded and FORKS the two cohorts.
 #   2. It keeps `pretty()` resolving a covariate name that appears in a ported schema note.
 # It is NOT an analysis roster for this project. The six adjusted odds ratios it was
-# written for belong to the parent manuscript and CLAUDE.md 7.1 forbids them here.
+# written for belong to the parent manuscript and are not analysed here.
 # Values MUST equal LABELS[key].short_label; the reconciliation loop at the bottom of this
 # file RAISES on any drift rather than silently overwriting.
 FEATURE_PRETTY: Dict[str, str] = {
@@ -949,9 +948,8 @@ ASA_CAT_PRETTY: Dict[str, str] = {
     ">=3": "Class 3 or 4",
 }
 
-# NEW. The locked age stratifier (CLAUDE.md 6.5). The cut points are the conventional
-# adult surgical bands and were fixed a priori, before any curve was fitted; `PLAN.md`
-# left them unspecified and `.build_facts.md` section 2 carries the same list with a date.
+# NEW. The locked age stratifier. The cut points are the conventional
+# adult surgical bands and were fixed a priori, before any curve was fitted.
 # The LEFT-hand strings are ASCII and are exactly what `02_build_cohort.py` writes into
 # `AGE_CAT` in the parquet. The EN-dash display form lives only on the right.
 AGE_CAT_ORDER: List[str] = ["18-49", "50-64", "65-74", ">=75"]
@@ -977,9 +975,9 @@ LOS_CAT_PRETTY: Dict[str, str] = {
 }
 
 # NEW. `INOUT` is the BILLING setting and is never a discharge measure or a length of
-# stay. The display strings say "billing" on purpose: a reviewer reading Table 1 or
+# stay. The display strings say "billing" on purpose: a reader of Table 1 or
 # Table 4 must not be able to read an `INOUT` row as time in hospital. The whole point of
-# `PLAN.md` 6.4 is that the two disagree in the large majority of cases labelled
+# the billing-label critique is that the two disagree in the large majority of cases labelled
 # Outpatient. Two levels only, verified read-only against the warehouse on 2026-07-31
 # (`Inpatient` 6,457,523 rows, `Outpatient` 5,357,395 rows, plus ONE SQL NULL row
 # database-wide, which is not in this cohort but must not crash the recode).
@@ -1334,11 +1332,10 @@ def pretty_level(variable: str, level) -> str:
 # ---------------------------------------------------------------------------
 # THE `DISCHDEST` LEVEL MAP: THE SINGLE SOURCE OF TRUTH
 #
-# `PLAN.md` 7.6 and 11.1 and CLAUDE.md section 3 and section 9 trap 5 all require this map
-# to live in exactly one place, and this is that place. `02_build_cohort.py` IMPORTS it
+# This map must live in exactly one place, and this is that place. `02_build_cohort.py` IMPORTS it
 # and does not carry its own copy; the parent project's copy inside its own
 # `02_build_cohort.py` is the origin and this is a verbatim port of it, both vocabularies
-# and all three rulings.
+# and all three level-assignment decisions.
 #
 # WHY A MAP AND NOT A SUBSTRING TEST. `DISCHDEST` swaps vocabulary COMPLETELY at 2021:
 # `DISCHDEST = 'Home'` returns zero rows for 2021-2024, where the level is
@@ -1350,17 +1347,17 @@ def pretty_level(variable: str, level) -> str:
 # because a future PUF vintage silently folding a new level into "Home" is exactly the
 # failure this map exists to prevent.
 #
-# THE THREE RULINGS, carried over unchanged:
+# THE THREE LEVEL-ASSIGNMENT DECISIONS, carried over unchanged:
 #   * `Facility Which was Home`      -> Facility, NOT Home.
 #   * `Against Medical Advice (AMA)` -> Other.
 #   * `Expired` and `Unknown`        -> Other. A patient who expired has no discharge day
-#     and is a competing event, not a same-day discharge; CLAUDE.md 8.8 requires `02` to
-#     reconcile `DISCHDEST = 'Expired'` against `DOPERTOD` and the mortality flag.
+#     and is a competing event, not a same-day discharge; `02` reconciles
+#     `DISCHDEST = 'Expired'` against `DOPERTOD` and the mortality flag.
 #
 # Downstream, `NONHOME_DISCH` is 1 for Facility, 0 for Home and MISSING for Other. It has
-# a 2021 era break and carries NO trend claim (CLAUDE.md section 9 trap 6): the rate steps
+# a 2021 era break and carries NO trend claim: the rate steps
 # from 4.98% to 3.85% as `DISCHDEST` collapses from seven facility levels to two. Report
-# `DISCHDEST` by year as `PLAN.md` 6.3 requires, but make no claim that non-home discharge
+# `DISCHDEST` by year, but make no claim that non-home discharge
 # declined.
 #
 # This map is published as supplementary table S1; `dischdest_level_rows()` below is the
@@ -1462,7 +1459,7 @@ def dischdest_category(level) -> str:
             f"DISCHDEST carries an unmapped level {key!r}. The PUF vocabulary swaps at "
             f"2021 and a new vintage can add another. Add it to "
             f"variable_dict.DISCHDEST_LEVEL_MAP, DISCHDEST_ERA, DISCHDEST_PRETTY and "
-            f"DISCHDEST_LEVEL_ORDER with an explicit ruling, and re-run "
+            f"DISCHDEST_LEVEL_ORDER with an explicit assignment, and re-run "
             f"`python3 variable_dict.py`. Do NOT match the substring 'Home': that folds "
             f"'Facility Which was Home' into the home group."
         ) from None
@@ -1522,10 +1519,10 @@ def dischdest_level_rows() -> List[Dict[str, str]]:
 # THE `INOUT` LEVEL MAP: same pattern, same guarantee.
 #
 # `INOUT` is the BILLING setting and is NEVER a discharge measure or a length of stay.
-# Every prior NSQIP outpatient-ACDF paper defines its exposure with it, and `PLAN.md` 2.3
-# carries the previously measured finding that 34,879 of 47,713 cases labelled Outpatient
+# Every prior NSQIP outpatient-ACDF paper defines its exposure with it, and an earlier
+# measurement found that 34,879 of 47,713 cases labelled Outpatient
 # stayed at least one night. That measurement critique is one of this paper's two headline
-# findings (`PLAN.md` 6.4), which is why the parent project's outright ban on the column
+# findings, which is why the parent project's outright ban on the column
 # is lifted here and only here.
 #
 # Two levels, verified read-only against the curated `main` view on 2026-07-31:
@@ -1546,7 +1543,7 @@ def inout_flag(level) -> Optional[int]:
     """1 for the Outpatient billing setting, 0 for Inpatient, None when missing.
 
     RAISES ValueError on any unmapped NON-NULL level, for the same reason
-    `dischdest_category()` does: a new billing level must be ruled on explicitly, not
+    `dischdest_category()` does: a new billing level must be assigned explicitly, not
     absorbed. NULL-safe by design, because exactly one SQL NULL row exists database-wide.
     Lookup is case-insensitive, since warehouse value casing varies by year.
 
@@ -1569,25 +1566,25 @@ def inout_flag(level) -> Optional[int]:
         f"against the warehouse on 2026-07-31 ({', '.join(INOUT_LEVEL_MAP)}), plus one "
         f"SQL NULL row database-wide. Add the new level to "
         f"variable_dict.INOUT_LEVEL_MAP, INOUT_PRETTY and INOUT_ORDER with an explicit "
-        f"ruling, and re-run `python3 variable_dict.py`."
+        f"assignment, and re-run `python3 variable_dict.py`."
     )
 
 
 # ---------------------------------------------------------------------------
 # CONTRACT CONSTANTS
 #
-# What the plan and CLAUDE.md fix explicitly, exported so that 02 through 08 cannot each
+# What the pre-specification fixes explicitly, exported so that 02 through 08 cannot each
 # invent a parallel spelling or a different order. Anything the pre-specification does NOT
-# fix is deliberately absent: see derived/notes_variable_dict.md.
+# fix is deliberately absent.
 #
 # TIMED_OUTCOMES is the ninth and most important of these and is defined at the top of
 # this file, because the LABELS generator keys off it.
 # ---------------------------------------------------------------------------
 
-# The four components of WINDOW_COMP, the safe-discharge composite (CLAUDE.md 6.2):
+# The four components of WINDOW_COMP, the safe-discharge composite:
 # hematoma requiring unplanned reoperation, unplanned reintubation, ventilator beyond
 # 48 hours, and reoperative tracheostomy. Equivalently HEMATOMA OR AIRWAY_COMP, because
-# the parent's three-component airway composite is bound by ACDF-hematoma CLAUDE.md 6b.
+# the parent's three-component airway composite is fixed by the companion hematoma analysis.
 #
 # PNEUMONIA and READMIT_UNPLANNED are EXCLUDED and their absence is load-bearing.
 # Pneumonia is a parenchymal infection, not an airway-patency event; folding it in would
@@ -1596,11 +1593,11 @@ def inout_flag(level) -> Optional[int]:
 # prevent it. Both are reported as their own rows in the descriptive timing analysis.
 #
 # REOP_TRACH is the parent's FROZEN SLOT-1 implementation, unchanged, so the two papers
-# cannot disagree about the composite (CLAUDE.md 6.2 tracheostomy slot ruling). The wider
+# cannot disagree about the composite. The wider
 # REOP_TRACH_SLOT12 marker is for the ascertainment supplement only and is NOT here.
 WINDOW_COMPONENTS: Tuple[str, ...] = ("HEMATOMA", "REINTUBATION", "VENT48", "REOP_TRACH")
 
-# The three pre-specified residual-risk thresholds, strictly decreasing (CLAUDE.md 6.4).
+# The three pre-specified residual-risk thresholds, strictly decreasing.
 # Reporting several rather than one is deliberate: there is no consensus acceptable
 # residual risk for discharge after ACDF, and a single threshold invites the objection
 # that the number was chosen after seeing the curves. These are proportions, not
@@ -1619,8 +1616,8 @@ def threshold_label(threshold: float) -> str:
         return RISK_THRESHOLD_PRETTY[key]
     raise ValueError(
         f"{threshold!r} is not one of the pre-specified RISK_THRESHOLDS "
-        f"{RISK_THRESHOLDS}. The thresholds were locked before any curve was fitted "
-        f"(CLAUDE.md 6.4); adding one after the fact is exactly the objection the "
+        f"{RISK_THRESHOLDS}. The thresholds were locked before any curve was fitted; "
+        f"adding one after the fact is exactly the objection the "
         f"three-threshold table exists to answer."
     )
 
@@ -1631,9 +1628,9 @@ class Stratifier(NamedTuple):
     levels: Tuple[str, ...]
 
 
-# The four stratifiers, fixed a priori, and nothing else without a stated reason
-# (CLAUDE.md 6.5). No interaction strata, no data-driven cut points, no additional
-# variable. `STEROID` is deliberately absent (CLAUDE.md 6.7).
+# The four stratifiers, fixed a priori, and nothing else without a stated reason.
+# No interaction strata, no data-driven cut points, no additional
+# variable. `STEROID` is deliberately absent.
 #
 # The level strings are ASCII and are exactly what 02_build_cohort.py writes. MALE is an
 # Int8 column, so its levels are given as "1" and "0"; pretty_level() folds 1, 1.0 and "1"
@@ -1647,7 +1644,7 @@ STRATIFIERS: Tuple[Stratifier, ...] = (
 
 STRATIFIER_COLUMNS: Tuple[str, ...] = tuple(_s.column for _s in STRATIFIERS)
 
-# The suppression rule, set before the curves were seen (CLAUDE.md 6.5): a stratum with
+# The suppression rule, set before the curves were seen: a stratum with
 # FEWER THAN this many events of the composite is suppressed rather than plotted, and the
 # suppression is reported with its count. 541 hematoma events in 112,642 patients thins
 # fast under stratification, and an unsuppressed curve on six events is unstable and
@@ -1656,11 +1653,11 @@ MIN_STRATUM_EVENTS: int = 10
 
 # The fixed observation window. NSQIP follow-up is 30 days from the principal operation
 # and is complete by construction: censoring is administrative and non-informative, there
-# is no loss to follow-up in the ordinary sense, and NO ESTIMATE EXTENDS PAST DAY 30
-# (CLAUDE.md hard rule 9). The day-30 cumulative incidence is the terminal estimate.
+# is no loss to follow-up in the ordinary sense, and NO ESTIMATE EXTENDS PAST DAY 30.
+# The day-30 cumulative incidence is the terminal estimate.
 FOLLOWUP_DAYS: int = 30
 
-# The pre-specified tie convention (CLAUDE.md 6.3), as importable renderable text so the
+# The pre-specified tie convention, as importable renderable text so the
 # Methods sentence and the sensitivity caption cannot drift from the code. The primary
 # convention is the conservative choice for a safety claim: it does not credit the
 # observation window with catching an event that may in fact have occurred at home.
@@ -1673,7 +1670,7 @@ TIE_CONVENTION_SENSITIVITY = (
     "after discharge."
 )
 
-# The six-term covariate set for the section 6.4 both-ways comparison (CLAUDE.md 6.6):
+# The six-term covariate set for the both-ways comparison:
 # age, sex, body mass index, ASA class, fusion levels, operative year, and nothing else.
 # The comparison is estimated TWICE on the same cohort with THIS identical covariate set,
 # differing only in how the outpatient exposure is defined: once by `INOUT` as the prior
@@ -1689,7 +1686,7 @@ BOTHWAYS_COVARIATES: Tuple[str, ...] = (
 )
 
 # PORTED. Burden = count of these four. This project never analyses the coagulopathy
-# burden (CLAUDE.md 7.1 gives it to the parent in every form), but `02_build_cohort.py`
+# burden (the parent paper owns it in every form), but `02_build_cohort.py`
 # still materialises COAG_BURDEN_N from this roster, and dropping it would fork the two
 # cohorts. Keep it; do not read it in 03 through 08.
 BURDEN_COMPONENTS: Tuple[str, ...] = ("BLEEDDIS", "INR_GT12", "PLT_LT150", "PTT_GT35")
@@ -1697,7 +1694,7 @@ BURDEN_COMPONENTS: Tuple[str, ...] = ("BLEEDDIS", "INR_GT12", "PLT_LT150", "PTT_
 # PORTED, AND FORBIDDEN AS AN ANALYSIS ROSTER. This is the parent's consequence cascade:
 # hematoma versus no hematoma rates of reintubation, ventilator beyond 48 hours,
 # pneumonia, readmission, mortality and length of stay, and the ratios between them.
-# CLAUDE.md 7.1 forbids every one of those quantities in this manuscript, and 7.3 forbids
+# Every one of those quantities is excluded from this manuscript, as is
 # any length-of-stay comparison by hematoma status. It is retained ONLY so
 # `verify_numbers.py` can enumerate the forbidden roster and assert that none of it
 # reaches a rendered artefact. No analysis step may iterate it.
@@ -1707,10 +1704,10 @@ CONSEQUENCE_OUTCOMES: Tuple[str, ...] = (
 
 # PORTED COMPLETENESS ROSTER, NOT A MODEL. The parent computed `MODEL_COMPLETE` as
 # completeness on its six adjusted-model terms. This project fits no hematoma model
-# (CLAUDE.md 6.6) and therefore exports no `PRIMARY_MODEL_TERMS`; that name is deleted on
+# and therefore exports no `PRIMARY_MODEL_TERMS`; that name is deleted on
 # purpose, because a constant called "the primary model terms" invites a step to fit the
 # primary model. But `MODEL_COMPLETE` is in the ported column contract
-# (.build_facts 5.1) and must be byte-identical to the parent's, or the two cohorts fork.
+# and must be byte-identical to the parent's, or the two cohorts fork.
 # This roster is the same six columns in the same order, named for what it actually does.
 # READ IT ONLY to reproduce that flag. Do not fit anything on it.
 MODEL_COMPLETE_TERMS: Tuple[str, ...] = (
@@ -1725,7 +1722,7 @@ MODEL_COMPLETE_TERMS: Tuple[str, ...] = (
 #
 # What changed relative to the parent, and why:
 #   * The coagulopathy-burden section is GONE. It belongs to the parent in every form
-#     (CLAUDE.md 7.1) and this paper never analyses it.
+#     and this paper never analyses it.
 #   * The preoperative laboratory section is GONE for the same reason: the coagulation
 #     panel is the parent's exposure, and a discharge-timing Table 1 gains nothing from it.
 #     The labels survive because `02` still materialises the columns.
@@ -1733,10 +1730,10 @@ MODEL_COMPLETE_TERMS: Tuple[str, ...] = (
 #     discharge-timing flags, the collapsed destination and, deliberately, `INOUT`:
 #     putting the billing label in the same table as the true length of stay is the first
 #     view of the measurement critique the reader gets.
-#   * `STEROID` is dropped from the comorbidity section (CLAUDE.md 6.7: excluded from
+#   * `STEROID` is dropped from the comorbidity section (excluded from
 #     every analysis and every table because its definition broadening is undated).
 #   * The outcomes section adds `WINDOW_COMP`, the safe-discharge composite, and drops the
-#     dysphagia columns, which belong to the parent (CLAUDE.md 7.1).
+#     dysphagia columns, which belong to the parent.
 #
 # Every name here must exist in LABELS; that is asserted at import.
 # ---------------------------------------------------------------------------
@@ -1809,19 +1806,19 @@ _ineligible = tuple(_o.key for _o in TIMED_OUTCOMES if not _o.postdisch_eligible
 if _ineligible != ("readmit",):
     raise ValueError(
         f"exactly one timed outcome, unplanned readmission, is ineligible for the "
-        f"post-discharge fraction (PLAN.md section 4 readmission caveat); found "
+        f"post-discharge fraction (readmission caveat); found "
         f"{_ineligible}"
     )
 del _o, _label_key, _ineligible
 
-# 4. WINDOW_COMP membership is bound by CLAUDE.md 6.2 and the exclusions are load-bearing.
+# 4. WINDOW_COMP membership is fixed and the exclusions are load-bearing.
 if len(WINDOW_COMPONENTS) != 4:
     raise ValueError(f"WINDOW_COMPONENTS must carry 4 components, found {len(WINDOW_COMPONENTS)}")
 for _forbidden in ("PNEUMONIA", "OUPNEUMO", "READMIT_UNPLANNED", "UNPLANNEDREADMISSION1"):
     if _forbidden in WINDOW_COMPONENTS:
         raise ValueError(
             f"{_forbidden!r} is in WINDOW_COMPONENTS. Pneumonia and unplanned readmission "
-            f"are EXCLUDED from the safe-discharge composite (CLAUDE.md 6.2)."
+            f"are EXCLUDED from the safe-discharge composite."
         )
 del _forbidden
 
@@ -1941,12 +1938,12 @@ _true_home = {_l for _l, _c in DISCHDEST_LEVEL_MAP.items() if _c == "Home"}
 if _substring_home == _true_home or not (_substring_home - _true_home):
     raise ValueError(
         "the DISCHDEST substring trap no longer holds: every level containing 'Home' now "
-        "collapses to Home. Re-read CLAUDE.md section 9 trap 5 before changing the map."
+        "collapses to Home. Re-check the level assignments before changing the map."
     )
 del _substring_home, _true_home
 
 # 13. The `INOUT` level map, same shape. Two levels, and BOTH display strings must say
-#     "billing", because the entire point of the label is that a reviewer cannot read an
+#     "billing", because the entire point of the label is that a reader cannot read an
 #     `INOUT` row as a length of stay.
 if set(INOUT_LEVEL_MAP) != set(INOUT_PRETTY):
     raise ValueError("INOUT_LEVEL_MAP and INOUT_PRETTY cover different level sets")
@@ -1977,7 +1974,7 @@ del _t
 # 15. The pre-specification strings and the one deleted constant. TIE_CONVENTION reaches
 #     the Methods verbatim, so it is held to the rendered-text bans here rather than at
 #     write time. `PRIMARY_MODEL_TERMS` is deliberately absent from this module: this
-#     project fits no hematoma risk model and no points score (CLAUDE.md 6.6), and a
+#     project fits no hematoma risk model and no points score, and a
 #     constant by that name would invite a step to fit one.
 for _s in (TIE_CONVENTION, TIE_CONVENTION_SENSITIVITY):
     assert_renderable(_s, where="pre-specification text")
@@ -2338,9 +2335,9 @@ def _self_test() -> None:
     assert "INOUT" in SECTIONS["Discharge and disposition"]
     assert "LOS_POSTOP" in SECTIONS["Discharge and disposition"]
     assert "Coagulopathy burden" not in SECTIONS, \
-        "the coagulopathy-burden section belongs to the parent (CLAUDE.md 7.1)"
+        "the coagulopathy-burden section belongs to the parent"
     assert all("STEROID" not in v for v in SECTIONS.values()), \
-        "STEROID is excluded from every table (CLAUDE.md 6.7)"
+        "STEROID is excluded from every table"
     checks += 5
 
     # --- 10. THE TIMED-OUTCOME ROSTER -----------------------------------------
@@ -2386,7 +2383,7 @@ def _self_test() -> None:
     checks += 3
 
     # unplanned readmission is the ONE outcome whose post-discharge fraction is
-    # uninformative by construction (PLAN.md section 4 readmission caveat)
+    # uninformative by construction (readmission caveat)
     assert timed_outcome("readmit").postdisch_eligible is False
     assert all(o.postdisch_eligible for o in TIMED_OUTCOMES if o.key != "readmit")
     assert timed_outcome("readmit").raw_fields == ("READMPODAYS1",)
@@ -2409,7 +2406,7 @@ def _self_test() -> None:
     assert set(DISCHDEST_LEVEL_MAP) == set(DISCHDEST_PRETTY) == set(DISCHDEST_ERA)
     checks += 2
 
-    # the three carried-over rulings
+    # the three carried-over level assignments
     assert dischdest_category("Facility Which was Home") == "Facility", \
         "'Facility Which was Home' is a FACILITY, not a home discharge"
     assert dischdest_category("Facility Which was Home") != "Home"

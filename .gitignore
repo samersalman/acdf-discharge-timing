@@ -3,7 +3,7 @@
 # PATIENT DATA IS THE FIRST ENTRY ON PURPOSE. The ACS-NSQIP Participant Use Data
 # File carries one row per patient and may not be redistributed under the Data Use
 # Agreement. Nothing derived from it at the patient level belongs in this
-# repository. Screen the staged tree before pushing, not after.
+# repository. Review the files you are about to commit before pushing, not after.
 
 # --- patient-level data. Never commit. -------------------------------------
 analysis/exports/
@@ -15,6 +15,13 @@ cohort.csv
 analysis/outputs/
 analysis/tables-csv/
 analysis/figures/
+results/revision/fragments/
+results/revision/figures/
+
+# --- the published tables are tracked on purpose ---------------------------
+# Some user-level ignore files exclude *.csv; re-include the aggregate reference tables.
+!results/tables-csv/*.csv
+!results/revision/tables-csv/*.csv
 
 # --- manuscript artefacts. Not code. ---------------------------------------
 *.docx
@@ -37,3 +44,6 @@ venv/
 #   analysis/vars/         the NSQIP export variable list
 #   results/results.json   aggregate results only, no patient-level rows
 #   results/tables-csv/    the published tables, aggregate only
+#   analysis/revision/*.py the additional analyses (Supplement)
+#   results/revision/results_r1.json, results/revision/tables-csv/
+#                          their published output, aggregate only

@@ -2,17 +2,17 @@
 """05_inout.py -- postoperative length of stay, the discharge-timing trend, and the
 `INOUT` measurement critique.
 
-Owner: T7. Owns `outputs/results_05.json`, `derived/notes_05.md`, and Tables 1, 2, 4, 4b,
+Writes `outputs/results_05.json`, `derived/notes_05.md`, and Tables 1, 2, 4, 4b,
 4c plus `tables-csv/s4_sensitivity_05.csv`. It writes nothing else.
 
 Inputs (frozen artefacts only; the warehouse is never read and no cohort is re-derived)
 --------------------------------------------------------------------------------------
     derived/cohort_analytic.parquet     n = 112,642. THE analysis population.
-    derived/cohort_identified.parquet   n = 124,344. RECONCILIATION ONLY (section 6).
+    derived/cohort_identified.parquet   n = 124,344. RECONCILIATION ONLY (item 6 below).
     variable_dict.py                    LABELS, SEED, SECTIONS, level maps, formatters
     cpt_acdf.py                         the pinned cohort ladders, imported never retyped
 
-What this step does (PLAN.md 2.1, 2.3, 6.3, 6.4, 6.6, 7.5)
+What this step does
 ----------------------------------------------------------
     1. Table 1   baseline characteristics by discharge timing (0 / 1 / >= 2 nights).
     2. Table 2   postoperative length of stay and discharge destination by operative year,
@@ -30,38 +30,37 @@ What this step does (PLAN.md 2.1, 2.3, 6.3, 6.4, 6.6, 7.5)
     7. S4        the trend excluding 2020, and the two length-of-stay fields against each
                  other.
 
-Binding constraints this file is written around
------------------------------------------------
+Constraints this file is written around
+---------------------------------------
   * EVERY discharge definition is on the direct days-from-operation-to-discharge field,
     frozen as `LOS_POSTOP`, and NEVER on the billing label. Confusing the two is the
     measurement error this paper documents.
   * `LOS_POSTOP` is NOT window-bounded. It runs to 112 days and 74 analytic patients stayed
     past day 30. The 0-to-30 timing rule applies to days-to-EVENT fields only and must never
-    be applied here (.build_facts.md 7.5).
+    be applied here.
   * `SAMEDAY_DISCH` and `DISCH_BY_POD1` contain patients who did NOT go home: an expired
-    destination, a recorded death within 30 days, or a still-in-hospital flag
-    (.build_facts.md 7.5 item 8). Both are reported with and without those patients, and the
+    destination, a recorded death within 30 days, or a still-in-hospital flag.
+    Both are reported with and without those patients, and the
     exclusion is stated rather than applied silently.
   * Home discharge is defined by the explicit level map in `variable_dict.py`, never by
     substring-matching the word Home, which would fold a facility level into the home group.
-  * `NONHOME_DISCH` has an era break at 2021 and carries NO TREND CLAIM (CLAUDE.md 9.6).
-    The destination distribution is reported by year because PLAN.md 6.3 requires it; no
+  * `NONHOME_DISCH` has an era break at 2021 and carries NO TREND CLAIM.
+    The destination distribution is reported by year because the specification requires it; no
     claim that non-home discharge declined is made anywhere.
-  * A pooled kappa would hide the two step changes T1 measured in the raw billing column
-    (.build_facts.md 7.1, Finding 2), so the year-by-year statistics are primary and the
+  * A pooled kappa would hide the two step changes measured in the raw billing column,
+    so the year-by-year statistics are primary and the
     pooled statistic is reported only beside them. A change in a billing label is never read
     as a change in practice.
-  * THE `INOUT` CRITIQUE IS A REPLICATION, NOT A NEW FINDING (CLAUDE.md 6a.1). It was
+  * THE `INOUT` CRITIQUE IS A REPLICATION, NOT A NEW FINDING. It was
     published on ACDF in NSQIP by Bovonratwet et al., Clin Spine Surg 2018, PMID 29351096.
     No key, table cell or note in this step calls it new, novel or first.
   * The both-ways comparison is the ONLY regression whose covariate set is fixed: it is
     `variable_dict.BOTHWAYS_COVARIATES` and nothing else. No discrimination statistic is
-    computed anywhere in this step, and no hematoma risk model and no points score is fitted
-    (CLAUDE.md 6.6, 7.1).
+    computed anywhere in this step, and no hematoma risk model and no points score is fitted.
   * A mismatch against a carried-over number is REPORTED, never overwritten in either
-    direction (CLAUDE.md 8.5).
+    direction.
 
-Fragment namespace (CLAUDE.md 4.2): `los.` `trend.` `dest.` `inout.` `bothways.` `baseline.`
+Fragment namespace: `los.` `trend.` `dest.` `inout.` `bothways.` `baseline.`
 Any other prefix is rejected by the merge and stops the pipeline.
 
 Usage
@@ -87,7 +86,7 @@ import statsmodels.api as sm
 import cpt_acdf
 import variable_dict as VD
 
-# Hard rule 4: seed the global NumPy stream before anything draws on it.
+# Seed the global NumPy stream before anything draws on it.
 np.random.seed(VD.SEED)
 
 HERE = Path(__file__).resolve().parent
@@ -109,8 +108,8 @@ DEST_ERA_BREAK_YEAR = 2021
 # ---------------------------------------------------------------------------
 # THE BOTH-WAYS PRE-SPECIFICATION.
 #
-# Fixed in `derived/notes_05.md` section 0 BEFORE the first fit was run, and reproduced
-# here so the constant and the note cannot drift. PLAN.md 6.4 says the size of the shift is
+# Fixed in the step's notes file (part 0) BEFORE the first fit was run, and reproduced
+# here so the constant and the note cannot drift. The specification says the size of the shift is
 # TO BE MEASURED and forbids asserting a direction in advance; nothing below asserts one.
 # ---------------------------------------------------------------------------
 BOTHWAYS_OUTCOME = "READMIT_UNPLANNED"
@@ -122,8 +121,8 @@ BOTHWAYS_OUTCOME_REASON = (
     "so the comparison is powered to show a shift between two definitions rather than "
     "sampling noise; it is ascertained after discharge, so unlike an in-hospital "
     "complication it cannot mechanically lengthen the index stay and thereby help define "
-    "the exposure it is regressed on; and it lies entirely outside the companion paper's "
-    "reserved results."
+    "the exposure it is regressed on; and it lies entirely outside the results of the "
+    "companion paper."
 )
 BOTHWAYS_EXPOSURES: Tuple[Tuple[str, str, str], ...] = (
     ("inout", "INOUT_OUTPT",
@@ -188,7 +187,7 @@ class FragmentWriter:
         if not any(key.startswith(p) or key == p[:-1] for p in self._prefixes):
             raise ValueError(
                 f"fragment key {key!r} is outside this step's reserved namespace "
-                f"{list(self._prefixes)} (CLAUDE.md 4.2)"
+                f"{list(self._prefixes)}."
             )
         if key in self._data:
             raise ValueError(f"fragment key {key!r} written twice inside this step")
@@ -224,7 +223,7 @@ FRAG = FragmentWriter(RESERVED_PREFIXES)
 
 
 # ===========================================================================
-# 0.1 UNITS AND SCALES (.build_facts.md section 9)
+# 0.1 UNITS AND SCALES
 # ===========================================================================
 # This step is the worst offender in the merged results file: its `.lo` and `.hi` keys
 # are variously PERCENTAGES (agreement, sensitivity, specificity, predictive values),
@@ -240,14 +239,14 @@ FRAG = FragmentWriter(RESERVED_PREFIXES)
 # family entries are KEY PATTERNS addressed to `08`, not rendered prose. No key is
 # renamed and none is removed.
 #
-# CORRECTED 2026-07-31, closing `.build_facts.md` 12.3. The earlier declaration had a hole
+# CORRECTED 2026-07-31. The earlier declaration had a hole
 # and, worse, two families that OVER-MATCHED a differently-scaled sibling. A wrong
 # declaration is more dangerous than a missing one, because a gate trusts it:
 #
 #   * `inout.by_year.<statistic>` swallowed the year of the smallest and the year of the
 #     largest kappa and declared two CALENDAR YEARS as percentages;
 #   * `inout.excl.<statistic>` swallowed a Cohen kappa and a count of patients and declared
-#     both as percentages, which is the exact 100-fold trap section 9 exists to stop;
+#     both as percentages, which is the exact 100-fold trap the declarations exist to stop;
 #   * `inout.reconcile.<population>.outpatient_night_pct` matched NOTHING at all, because
 #     the keys carry a gate segment and a rung segment, so nine reconciliation percentages
 #     fell to the catch-all and were described there as counts.
@@ -675,7 +674,7 @@ if sorted(_DECLARED_NS) != sorted(p.rstrip(".") for p in RESERVED_PREFIXES):
     raise SystemExit(
         f"[05] SCALE_DECLARATIONS covers {sorted(_DECLARED_NS)} but this step reserves "
         f"{sorted(p.rstrip('.') for p in RESERVED_PREFIXES)}. Every reserved namespace "
-        f"declares its own units (.build_facts.md 9.2 item 2)."
+        f"declares its own units."
     )
 if len(set(_DECLARED_NS)) != len(_DECLARED_NS):
     raise SystemExit(f"[05] SCALE_DECLARATIONS declares a namespace twice: {_DECLARED_NS}")
@@ -707,7 +706,7 @@ def scale_family_regex(pattern: str) -> "re.Pattern":
 def publish_scale_declarations() -> None:
     """Declare the unit of every numeric family this step publishes.
 
-    Binding: `.build_facts.md` section 9. One declaration per namespace, each scoped
+    One declaration per namespace, each scoped
     to its own namespace and saying so, because the merged `results.json` resolves
     `.lo` and `.hi` to at least four incompatible scales and three of the four live
     in this step.
@@ -722,12 +721,12 @@ def publish_scale_declarations() -> None:
 def assert_scale_coverage(keys: Sequence[str]) -> int:
     """Every published key resolves to exactly one declared family. Raises otherwise.
 
-    This is what makes `.build_facts.md` 9.2 item 4 satisfiable without a special case: a
+    This is what makes a unit lookup satisfiable without a special case: a
     gate can ask this fragment for the unit of ANY key it holds and get one answer. A new
     key added without a family fails HERE, inside the step that created it and before the
     fragment is written, rather than in a downstream gate that cannot know what the key
     means. `02_build_cohort.py` and `04_postdischarge.py` have carried this assertion since
-    the section 9.6 fix pass; this step did not, which is why `.build_facts.md` 12.3 was
+    an earlier fix pass; this step did not, which is why the earlier gap was
     found by `08` rather than by `05`.
 
     A key matched by MORE THAN ONE family is a failure too, and deliberately so: that is
@@ -758,20 +757,19 @@ def assert_scale_coverage(keys: Sequence[str]) -> int:
         problems.append(f"matched by more than one declared family: {sorted(ambiguous)[:10]}")
     if problems:
         raise SystemExit(
-            "[05] scale-declaration coverage gap (.build_facts.md 9.2 item 4):\n       "
+            "[05] scale-declaration coverage gap:\n       "
             + "\n       ".join(problems)
         )
     return scale_family_count()
 
 
 def write_table(path: Path, columns: Sequence[str], rows: Sequence[Dict[str, Any]]) -> None:
-    """Write one reviewer-facing CSV, asserting every header and every cell is renderable."""
+    """Write one reader-facing CSV, asserting every header and every cell is renderable."""
     for col in columns:
         VD.assert_renderable(col, where=f"{path.name} header")
     if not any("denominator" in c.lower() for c in columns):
         raise ValueError(
-            f"{path.name} reports percentages without a denominator column "
-            f"(CLAUDE.md hard rule 7)"
+            f"{path.name} reports percentages without a denominator column"
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -902,8 +900,8 @@ def fit_logit(frame: pd.DataFrame, outcome: str, exposure: str,
               covariates: Sequence[str]) -> Dict[str, Any]:
     """One logistic regression, reporting the EXPOSURE term only.
 
-    No discrimination statistic is computed and no covariate odds ratio is returned
-    (CLAUDE.md 6.6): these models exist to adjust an exposure contrast, not to describe risk.
+    No discrimination statistic is computed and no covariate odds ratio is returned:
+    these models exist to adjust an exposure contrast, not to describe risk.
     """
     design = build_design(frame, exposure, covariates)
     y = frame[outcome].astype(float)
@@ -950,19 +948,19 @@ def load_analytic() -> pd.DataFrame:
     if not ANALYTIC_PARQUET.exists():
         raise SystemExit(
             f"missing {ANALYTIC_PARQUET}. Run 02_build_cohort.py first; this step never "
-            f"re-derives a cohort and never reads the warehouse (CLAUDE.md 4.1)."
+            f"re-derives a cohort and never reads the warehouse."
         )
     frame = pd.read_parquet(ANALYTIC_PARQUET)
     expected = cpt_acdf.COHORT_LADDER_N["analytic"]
     if len(frame) != expected:
         raise SystemExit(
             f"analytic parquet carries {len(frame):,} rows, expected {expected:,} from "
-            f"cpt_acdf.COHORT_LADDER_N. Stop condition (CLAUDE.md 8.5)."
+            f"cpt_acdf.COHORT_LADDER_N. Stop condition."
         )
     if frame["LOS_POSTOP"].max() <= VD.FOLLOWUP_DAYS:
         raise SystemExit(
             "LOS_POSTOP appears to have been truncated at the follow-up window. It is not "
-            "window-bounded and truncating it would corrupt this analysis (.build_facts 7.5)."
+            "window-bounded and truncating it would corrupt this analysis."
         )
     return frame
 
@@ -972,8 +970,7 @@ def not_discharged_home_mask(frame: pd.DataFrame) -> pd.Series:
 
     Three disjointly-measured conditions, unioned: an expired discharge destination, a
     recorded death within 30 days, or a still-in-hospital flag. `02` publishes the same
-    counts under `losfield.*`; they are re-derived here rather than copied
-    (.build_facts.md 7.5 binding item 1).
+    counts under `losfield.*`; they are re-derived here rather than copied.
     """
     expired = frame["DISCHDEST"].astype("string").fillna("").eq("Expired")
     died = frame["MORT30"].fillna(0).astype(int).eq(1)
@@ -1003,7 +1000,7 @@ def _strata(frame: pd.DataFrame) -> List[Tuple[str, str, pd.Series]]:
     """The four Table 1 columns: the three named strata plus the explicit missing stratum.
 
     `LOS_CAT` is the empty string on 83 analytic rows and `pretty_level` returns the empty
-    string rather than a missing label for it (.build_facts.md 7.4 binding item 8), so the
+    string rather than a missing label for it, so the
     missing stratum is routed through MISSING_LABEL here rather than rendering blank.
     """
     cat = frame["LOS_CAT"].astype("string").fillna("")
@@ -1502,7 +1499,7 @@ def load_identified_for_reconciliation() -> Tuple[pd.DataFrame, pd.Series]:
 
     RECONCILIATION ONLY. This is the one place in this step that reads the pre-exclusion
     parquet, and no figure it produces is a denominator for a reported percentage:
-    CLAUDE.md 4.4 rules that the manuscript reports the billing-label analysis on the
+    The manuscript reports the billing-label analysis on the
     ANALYTIC cohort. Nothing here re-derives a cohort or reads the warehouse; the
     pre-exclusion frame and the ladder masks were both frozen by 02, and the ladder filter
     is asserted against the pinned constant rather than trusted.
@@ -1526,7 +1523,7 @@ def load_identified_for_reconciliation() -> Tuple[pd.DataFrame, pd.Series]:
 def gate2_on_identified(frame: pd.DataFrame, nonagenarian: pd.Series) -> List[Dict[str, Any]]:
     """The carried-over discharge-timing figures, measured on the pre-exclusion frame.
 
-    RECONCILIATION ONLY. `CLAUDE.md` 4.4 rules that the manuscript reports the analytic
+    RECONCILIATION ONLY. The manuscript reports the analytic
     cohort; this exists so a mismatch can be explained rather than merely announced.
     """
     los = frame["LOS_POSTOP"]
@@ -1607,8 +1604,7 @@ def main() -> int:
 
     publish_scale_declarations()
     print(f"scale declarations {len(SCALE_DECLARATIONS)} namespaces, "
-          f"{scale_family_count()} families, each scoped to itself "
-          f"(.build_facts.md 9)")
+          f"{scale_family_count()} families, each scoped to itself")
 
     frame = load_analytic()
     analytic_n = len(frame)
@@ -1768,7 +1764,7 @@ def main() -> int:
                      record["slope_per_year"] * n_gaps, 4)
 
         # THE ENDPOINT DIFFERENCE, published as its own key rather than left for `08`
-        # to subtract by hand (CLAUDE.md hard rule 3). It is NOT the fitted slope times
+        # to subtract by hand. It is NOT the fitted slope times
         # the window, and pairing the two as though it were is arithmetically
         # incoherent: the series is not required to be monotone, and for discharge by
         # postoperative day 1 it is not. The peak and the monotonicity flag are
@@ -1797,7 +1793,7 @@ def main() -> int:
                  "not present one as the other.")
 
     # The adjusted trend: operative year as a LINEAR term, adjusted for age, sex, body mass
-    # index, ASA class and fusion levels (PLAN.md 6.3). Only the year term is reported.
+    # index, ASA class and fusion levels. Only the year term is reported.
     trend_covariates = ["AGE_PER10", "MALE", "BMI_PER5", "ASA_GE3", "LEVELS_CAT"]
     trend_frame = frame.copy()
     trend_frame["YEAR_LINEAR"] = year_series.astype("Float64") - float(YEARS[0])
@@ -1840,7 +1836,7 @@ def main() -> int:
     print("trend      Cochran-Armitage and adjusted logistic fitted for both definitions")
 
     # -------------------------------------------------------------------
-    # Destination by year. NO TREND CLAIM (CLAUDE.md 9.6).
+    # Destination by year. NO TREND CLAIM.
     # -------------------------------------------------------------------
     FRAG.put("dest.years", by_year["years"])
     FRAG.put("dest.denominator_by_year", by_year["dest_den"])
@@ -1870,7 +1866,7 @@ def main() -> int:
              "The discharge destination vocabulary changes completely at the era break, "
              "collapsing from seven facility levels to two, so the non-home discharge rate "
              "is not comparable across the break. The distribution is reported by year "
-             "because the plan requires it, and no claim that non-home discharge declined is "
+             "because the specification requires it, and no claim that non-home discharge declined is "
              "made anywhere in this manuscript.")
     FRAG.put("dest.home_definition",
              "Home discharge is taken from the explicit destination level map, which maps "
@@ -2256,8 +2252,8 @@ def main() -> int:
     # -------------------------------------------------------------------
     # Write the fragment and the notes
     # -------------------------------------------------------------------
-    # BEFORE the write: every published key must resolve to exactly one declared family
-    # (.build_facts.md 9.2 item 4, 12.3). A key added without a family fails here.
+    # BEFORE the write: every published key must resolve to exactly one declared family.
+    # A key added without a family fails here.
     n_families = assert_scale_coverage(FRAG.keys())
     print(f"scale coverage {len(FRAG.keys())} keys, every one matched by exactly one of "
           f"{n_families} declared families")
@@ -2281,12 +2277,12 @@ def main() -> int:
 
 
 def verify_fragment() -> None:
-    """Re-read the fragment through the orchestrator's own validator."""
+    """Re-read the fragment through the pipeline runner's own validator."""
     sys.path.insert(0, str(HERE))
     try:
-        import run_all  # noqa: PLC0415  (imported here so a broken orchestrator cannot block analysis)
+        import run_all  # noqa: PLC0415  (imported here so a broken runner cannot block analysis)
     except ModuleNotFoundError:
-        # run_all.py is the pipeline orchestrator and is not distributed with the
+        # run_all.py is the pipeline runner and is not distributed with the
         # public analysis repository. The fragment is written either way; only this
         # namespace self-check is unavailable.
         print("fragment self-validation skipped: run_all.py is not distributed "
@@ -2307,11 +2303,11 @@ def verify_fragment() -> None:
 
 
 # ===========================================================================
-# 9. notes_05.md
+# 9. The notes file
 # ===========================================================================
 PRESPEC_SECTION = """## 0. PRE-SPECIFICATION for the both-ways comparison, recorded BEFORE the first fit
 
-Written 2026-07-31, before any regression in this step was run. `PLAN.md` 6.4 requires the
+Written 2026-07-31, before any regression in this step was run. The specification requires the
 headline "outpatient versus inpatient ACDF" complication comparison to be re-estimated twice
 on the same cohort, once with the exposure defined by the billing label and once by true
 postoperative length of stay, and says the size of the shift is **to be measured**. No
@@ -2331,20 +2327,20 @@ direction is asserted here.
    index stay and would therefore help to define the very exposure it is being regressed on,
    building reverse causation into the length-of-stay arm and into that arm only. Readmission
    does not have that defect.
-4. It lies entirely outside the companion paper's reserved results. `CLAUDE.md` 7.1 reserves
+4. It lies entirely outside the results of the companion paper, which covers
    the hematoma-stratified consequence cascade and the multivariable hematoma risk model; this
    comparison is not stratified by hematoma status, does not use the hematoma outcome, and
    reports no covariate odds ratio.
 
 **Covariate set, fixed and identical between the two fits**
-(`variable_dict.BOTHWAYS_COVARIATES`, `CLAUDE.md` 6.6): age per decade, male sex, body mass
+(`variable_dict.BOTHWAYS_COVARIATES`): age per decade, male sex, body mass
 index per 5 units, ASA class 3 or 4, fusion levels (categorical, reference 1 level), operative
 year (categorical, reference 2012). Nothing else. Both fits run on **one common complete-case
 analysis set**, so the two estimates differ only in how the exposure is defined.
 
 **Effect measure:** odds ratio with a 95% Wald confidence interval, exposure coded 1 for
 "outpatient" under each definition so the two are directly comparable. **No discrimination
-statistic is computed** (`CLAUDE.md` 6.6). The shift is quantified as the ratio of the two
+statistic is computed**. The shift is quantified as the ratio of the two
 adjusted odds ratios, their absolute difference, and whether the intervals overlap. **No
 p-value is computed for the difference between the two estimates**: they are fitted on the
 same patients and are correlated, so a two-sample comparison would be invalid.
@@ -2371,9 +2367,9 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                 f"{candidate['pct']:.2f}% |")
 
     lines: List[str] = []
-    lines.append("# notes_05.md -- handoff from `05_inout.py`")
+    lines.append("# Notes from `05_inout.py`")
     lines.append("")
-    lines.append("Owner: **T7 (length of stay and the `INOUT` critique)**. Owned files: "
+    lines.append("Files of this step: "
                  "`05_inout.py`, `outputs/results_05.json`, `derived/notes_05.md`, "
                  "`tables-csv/table1_baseline_by_discharge_timing.csv`, "
                  "`tables-csv/table2_los_and_destination_by_year.csv`, "
@@ -2400,7 +2396,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  "using NSQIP 2005-2014, reporting **3,204 of 4,123 (77.7%)** cases the "
                  "registry termed outpatient with a length of stay greater than zero, and "
                  "running the same both-ways multivariable comparison. The words new, novel "
-                 "and first must never attach to this finding (`CLAUDE.md` 6a.1). `08` must "
+                 "and first must never attach to this finding. `08` must "
                  "cite PMID 29351096 in the Introduction and the Discussion and state plainly "
                  "that this is a replication.")
     lines.append("")
@@ -2440,7 +2436,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  f"({stats_all['outpatient_night_pct']:.1f}%) cases carrying the outpatient "
                  f"billing label stayed at least one night.** Report it with this denominator "
                  f"and cite Bovonratwet's 3,204 of 4,123 (77.7%) beside it. **Do not present "
-                 f"either as confirming the other's exact value** (`CLAUDE.md` 6a.1): the two "
+                 f"either as confirming the other's exact value**: the two "
                  f"cohorts overlap and the windows differ.")
     lines.append("")
     lines.append("The sample-size extension is stated as two measured counts and never as an "
@@ -2451,12 +2447,12 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     # 2
     lines.append("## 2. THE YEAR-BY-YEAR FORM IS PRIMARY. A pooled kappa hides two step changes")
     lines.append("")
-    lines.append("T1 measured two step changes in the raw billing column: the outpatient share "
+    lines.append("Two step changes were measured in the raw billing column: the outpatient share "
                  "steps 25.9% (2016) to 36.1% (2017), and 44.3% (2020) to 50.6% (2021), the "
                  "later step coinciding exactly with the discharge-destination vocabulary swap "
                  "and the heart-failure prevalence step. **A pooled 2012-2024 kappa would hide "
                  "both**, so the pooled statistic above is reported only beside the table "
-                 "below (`.build_facts.md` 7.1, Finding 2, binding).")
+                 "below.")
     lines.append("")
     lines.append("| Year | Denominator | Outpatient label, % | Zero nights, % | "
                  "Labelled outpatient but stayed a night, % | Sensitivity, % | "
@@ -2484,7 +2480,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  f"{min(per_year['outpatient_night_pct']):.1f}% to "
                  f"{max(per_year['outpatient_night_pct']):.1f}%.")
     lines.append("")
-    lines.append("**Binding on `07` and `08`: never read a change in the billing label as a "
+    lines.append("**Rule for `07` and `08`: never read a change in the billing label as a "
                  "change in practice.** The label's meaning moved; the length of stay is the "
                  "measure that did not.")
     lines.append("")
@@ -2538,7 +2534,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  "They are fitted on the same patients and are correlated, so a two-sample "
                  "comparison would be invalid. No discrimination statistic is computed and no "
                  "covariate odds ratio is reported: the model exists to adjust one exposure "
-                 "contrast, not to describe risk (`CLAUDE.md` 6.6).")
+                 "contrast, not to describe risk.")
     lines.append("")
 
     # 4
@@ -2569,7 +2565,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  f"in same-day discharge came out of the one-night group, not out of the "
                  f"long-stay tail.")
     lines.append("")
-    lines.append("**Both tests, as `PLAN.md` 6.3 requires:**")
+    lines.append("**Both tests, as the specification requires:**")
     lines.append("")
     lines.append("| Definition | Cochran-Armitage | Trend, percentage points per year | "
                  "Unadjusted odds per year | Adjusted odds per year | Analysis n |")
@@ -2651,7 +2647,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     lines.append("")
     lines.append("### 5.1 The same-day flags contain patients who did not go home")
     lines.append("")
-    lines.append(f"`.build_facts.md` 7.5 item 8 is binding and is re-derived here. "
+    lines.append(f"The same-day exclusion rule is re-derived here. "
                  f"{counts['excluded']:,} analytic patients carry an expired discharge "
                  f"destination, a recorded death within 30 days, or a still-in-hospital flag. "
                  f"Of them, {counts['sameday_n'] - counts['sameday_clean_n']} fall inside the "
@@ -2689,8 +2685,8 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     lines.append("")
     lines.append("### 5.2 Discharge destination carries NO trend claim")
     lines.append("")
-    lines.append("`CLAUDE.md` 9.6 is binding. The destination distribution is reported by year "
-                 "because `PLAN.md` 6.3 requires it, and **no claim that non-home discharge "
+    lines.append("The destination distribution is reported by year "
+                 "because the specification requires it, and **no claim that non-home discharge "
                  "declined appears anywhere.** The vocabulary swaps completely at the era "
                  "break and the facility levels collapse from seven to two, so the rate is not "
                  "comparable across it. Home discharge is defined by the explicit level map, "
@@ -2701,9 +2697,9 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     # 6
     lines.append("## 6. GATE 2: every carried-over number, re-derived")
     lines.append("")
-    lines.append("`CLAUDE.md` 8.5: a mismatch beyond tolerance is a stop condition to report, "
+    lines.append("A mismatch beyond tolerance is a stop condition to report, "
                  "never a number to overwrite in either direction. The manuscript reports the "
-                 "**analytic** cohort (`CLAUDE.md` 4.4).")
+                 "**analytic** cohort.")
     lines.append("")
     lines.append("| Carried-over figure | Analytic cohort, re-derived | Verdict |")
     lines.append("|---|---|---|")
@@ -2765,7 +2761,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                      f"{closest['pod1_pct'] - 67.6:+.3f} percentage points. It is consistent "
                      f"with the carried-over value having been truncated rather than rounded "
                      f"at one decimal, but that is an inference and it is not asserted. "
-                     f"**Reported, not reconciled away** (`CLAUDE.md` 8.5).")
+                     f"**Reported, not reconciled away**.")
     lines.append("")
     lines.append("On the analytic cohort, which is the population every other number in this "
                  "manuscript uses, all three measures are higher, because the excluded cases "
@@ -2774,7 +2770,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  "carried-over value and do not discard it.**")
     lines.append("")
     lines.append(f"**The 2024 same-day rate is resolved: {g2024['sameday_pct']:.2f}% of "
-                 f"{g2024['denominator']:,} on the analytic cohort.** `PLAN.md` 13's open item "
+                 f"{g2024['denominator']:,} on the analytic cohort.** The earlier open item "
                  f"is closed. The carried-over 16 to 18% range brackets both the analytic "
                  f"{g2024['sameday_pct']:.2f}% and the pre-exclusion "
                  f"{ident_2024['sameday_pct']:.2f}%, which is the most likely reason it was "
@@ -2784,13 +2780,13 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     # 7
     lines.append("## 7. The carried-over 47,713, RESOLVED")
     lines.append("")
-    lines.append("`PLAN.md` 13 and `PLAN.md` 7.5 leave the denominator behind "
-                 "\"34,879 of 47,713 (73%)\" unrecorded. T1 measured 47,749 on the Gate B "
+    lines.append("The earlier specification left the denominator behind "
+                 "\"34,879 of 47,713 (73%)\" unrecorded. The export check measured 47,749 on the Gate B "
                  "pre-exclusion cohort and 47,735 on Gate A; `02` measured 46,046 on the "
-                 "analytic cohort. None is 47,713. T1 recorded one explicitly unverified "
+                 "analytic cohort. None is 47,713. The export check recorded one explicitly unverified "
                  "hypothesis for this step to test first and did not adopt it.")
     lines.append("")
-    lines.append("**Result 1: T1's elective hypothesis is REFUTED.** The elective rung removes "
+    lines.append("**Result 1: the elective hypothesis is REFUTED.** The elective rung removes "
                  f"{[c for c in reconciliation['candidates'] if c['gate'] == 'b' and c['rung'] == 'identified' and c['restriction'] == 'all'][0]['denominator'] - [c for c in reconciliation['candidates'] if c['gate'] == 'b' and c['rung'] == 'elective' and c['restriction'] == 'all'][0]['denominator']:,} "
                  "outpatient-labelled cases, not the 36 that would have been needed. The "
                  "elective rung lands on "
@@ -2821,12 +2817,12 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                      f"reproduces to one decimal as {best['pct']:.1f}%. The residual "
                      f"{abs(34879 - best['numerator'])}-case gap is "
                      f"{100.0 * abs(34879 - best['numerator']) / 34879:.3f}% of the numerator "
-                     f"and is reported, not reconciled away (`CLAUDE.md` 8.5).")
+                     f"and is reported, not reconciled away.")
     if not pair_matches:
         lines.append("")
         lines.append("**No tested population reproduces the carried-over PAIR exactly.**")
     lines.append("")
-    lines.append(f"**What the manuscript reports** (`CLAUDE.md` 4.4): the analytic cohort. "
+    lines.append(f"**What the manuscript reports**: the analytic cohort. "
                  f"{stats_all['b']:,} of {stats_all['outpatient_n']:,} "
                  f"({stats_all['outpatient_night_pct']:.1f}%) outpatient-labelled cases stayed "
                  f"at least one night, out of {int((frame['INOUT'] == VD.INOUT_OUTPATIENT_LEVEL).sum()):,} "
@@ -2848,7 +2844,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  f"{crosscheck['agree_n']:,} agree and **{crosscheck['disagree_n']} disagree "
                  f"({100.0 * crosscheck['disagree_n'] / crosscheck['both_present']:.3f}%), "
                  f"every one of them exactly one day, the subtraction reading longer.** "
-                 f"`CLAUDE.md` 8.7 records the companion project's measurement as 204 "
+                 f"The companion project measured 204 "
                  f"disagreements on 112,523 rows: "
                  f"{'REPRODUCED exactly' if crosscheck['disagree_n'] == 204 and crosscheck['both_present'] == 112523 else 'NOT reproduced'}. "
                  f"The direct field stays the analysis variable; the subtraction is never one.")
@@ -2860,7 +2856,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
     lines.append("1. **Read `outputs/results.json`, never this file.** Every number above is a "
                  "key under `los.`, `trend.`, `dest.`, `inout.`, `bothways.` or `baseline.`. "
                  "This project already has recorded instances of a number copied out of a "
-                 "handoff note being wrong while the artefact was right.")
+                 "notes file being wrong while the artefact was right.")
     lines.append("2. **Figure 4** (discharge timing by year) is built from "
                  "`trend.years`, `trend.sameday.pct_by_year`, "
                  "`trend.disch_by_pod1.pct_by_year` and `trend.los.median_by_year`. "
@@ -2902,7 +2898,7 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  "step's six namespaces now carries its own declaration (`los.scale`, "
                  "`trend.scale`, `dest.scale`, `inout.scale`, `bothways.scale`, "
                  "`baseline.scale`), with a machine-readable family list and unit list "
-                 "beside it (`.build_facts.md` section 9).")
+                 "beside it.")
     lines.append("12. **Do not pair the fitted trend slope with the endpoint difference.** "
                  "They are different quantities and on a non-monotone series they do not "
                  "agree: discharge by postoperative day 1 has a fitted slope of "
@@ -2913,17 +2909,17 @@ def write_notes(frame, stats_all, stats_clean, per_year, by_year, trend_fits,
                  f"{FRAG['trend.disch_by_pod1.endpoint_difference_pp']:+.4f}. Both are "
                  "published (`trend.ca.<definition>.all.slope_pp_per_year`, "
                  "`.fitted_change_pp`, `trend.<definition>.endpoint_difference_pp`); "
-                 "name whichever is used as what it is. See section 4.")
+                 "name whichever is used as what it is. See part 4.")
     lines.append("")
-    lines.append("## 10. One deviation to be ruled on by the orchestrator")
+    lines.append("## 10. One deviation, flagged")
     lines.append("")
-    lines.append("`CLAUDE.md` 6.6 says \"the one regression this project does fit is the "
-                 "both-ways comparison\". `PLAN.md` 6.3 separately and explicitly requires the "
+    lines.append("The project's rule is that the one regression it fits is the "
+                 "both-ways comparison. The specification separately and explicitly requires the "
                  "discharge-timing trend to be tested with **a logistic model carrying "
                  "operative year as a linear term, adjusted for age, sex, body mass index, ASA "
                  "class and fusion levels**, and to report it beside the Cochran-Armitage "
-                 "test. Both are fitted here, because the plan wins on science and because "
-                 "6.6's stated purpose is to bar a new hematoma risk model, a points score and "
+                 "test. Both are fitted here, because the specified trend test is scientifically required and because "
+                 "the rule's stated purpose is to bar a new hematoma risk model, a points score and "
                  "a discrimination statistic, none of which this step produces. The trend "
                  "model reports its year term only, no covariate odds ratio, and no "
                  "discrimination statistic. Flagged rather than assumed.")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """03_timing.py -- cumulative incidence of every timed outcome by postoperative day.
 
-Owner: **T5 (timing)**. Owned artefacts, and nothing else:
+Artefacts written by this step, and nothing else:
 
     outputs/results_03.json
     derived/notes_03.md
@@ -11,7 +11,7 @@ Owner: **T5 (timing)**. Owned artefacts, and nothing else:
     tables-csv/s4_sensitivity_03.csv
     tables-csv/cif_*.csv
 
-WHAT THIS STEP DOES (PLAN.md 4, 5, 6.1, 6.6, 7.3; CLAUDE.md 6.1)
+WHAT THIS STEP DOES
 
  1. Aalen-Johansen cumulative incidence with DEATH AS THE COMPETING EVENT, for each of
     the eight outcomes in `variable_dict.TIMED_OUTCOMES`, on integer postoperative days
@@ -25,13 +25,13 @@ WHAT THIS STEP DOES (PLAN.md 4, 5, 6.1, 6.6, 7.3; CLAUDE.md 6.1)
     SIZE of the competing-risk correction measured rather than assumed small.
  5. Supplement S1: field definitions, the authoritative code sets rendered from
     `cpt_acdf`, and the `DISCHDEST` level map from `variable_dict.dischdest_level_rows()`.
- 6. The coding-era check (PLAN.md 7.3): the year-by-year event rate for EVERY timed
+ 6. The coding-era check: the year-by-year event rate for EVERY timed
     outcome, tested for a step at the ICD-9 to ICD-10 transition. An outcome with a step
     is reported by era and never pooled.
  7. Supplement S4 (this step's share): one minus Kaplan-Meier versus Aalen-Johansen;
     ICD-10 era only; elective defined by the emergency-case field only; and the V0 and
     V1 hematoma code sets.
- 8. Gate 2 (CLAUDE.md 8.4): the median hematoma reoperation postoperative day and the
+ 8. Gate 2: the median hematoma reoperation postoperative day and the
     share on postoperative day 0 or 1, RE-DERIVED here, reported on the analytic cohort
     as primary with the identified-rung reconciliation beside it.
 
@@ -43,7 +43,7 @@ WHY THE ESTIMATOR IS HAND-IMPLEMENTED
     types share a time, which on integer postoperative days happens constantly: a death
     and a reoperation on the same day is enough. `jitter_level=0` is not an escape hatch
     either, because the jitter routine raises `ValueError` when the level is not strictly
-    positive. CLAUDE.md 6.1 requires a step function ON INTEGERS, and a jittered time
+    positive. The estimator must be a step function ON INTEGERS, and a jittered time
     axis is not one.
   * Independently of the jitter, its cumulative-incidence column is a `cumsum` over
     `d1/n * lagged_survival`. `survival_table_from_events` always synthesises a row at
@@ -85,12 +85,12 @@ here that leaves a small gap against `cif.<outcome>.crude_pct`, and the gap is e
 equals the crude proportion is falsifiable by one subtraction, so this file does not
 make one.
 
-HARD RULES HONOURED HERE (CLAUDE.md section 5)
+CONVENTIONS HONOURED HERE
 
   * Reads `derived/cohort_analytic.parquet` and never re-derives a cohort, never reads
     the warehouse and never reads the export CSV. `derived/cohort_identified.parquet` is
-    opened READ-ONLY for two columns, for the Gate 2 identified-rung reconciliation the
-    task requires; see `identified_reconciliation()` for the justification.
+    opened READ-ONLY for two columns, for the Gate 2 identified-rung reconciliation that
+    is required; see `identified_reconciliation()` for the justification.
   * No CPT or ICD literal: every code set is rendered from `cpt_acdf`.
   * No literal U+2014 anywhere in this file; every rendered string passes
     `variable_dict.assert_renderable` at write time.
@@ -126,7 +126,7 @@ if str(HERE) not in sys.path:
 import cpt_acdf as CPT           # noqa: E402  the ONLY place a CPT or ICD literal lives
 import variable_dict as VD       # noqa: E402
 
-# CLAUDE.md hard rule 4. This step draws on no random stream (the estimator is exact and
+# This step draws on no random stream (the estimator is exact and
 # the tests are analytic), but the seed is set unconditionally so that adding one later
 # cannot make the step irreproducible.
 np.random.seed(VD.SEED)
@@ -144,7 +144,7 @@ COHORT_IDENTIFIED = DERIVED / "cohort_identified.parquet"
 FRAGMENT_PATH = OUTPUTS / "results_03.json"
 NOTES_PATH = DERIVED / "notes_03.md"
 
-# The five reserved top-level namespaces for this step (CLAUDE.md 4.2). Every key written
+# The five reserved top-level namespaces for this step. Every key written
 # to the fragment is checked against them before the file is written, so a namespace
 # violation fails HERE rather than at the merge in run_all.py.
 RESERVED_PREFIXES: Tuple[str, ...] = ("cif.", "timing.", "gray.", "era.", "s3.")
@@ -157,11 +157,11 @@ DENOM_COLUMN = "denominator"            # the machine-readable contract column
 # separately with its confidence interval.
 LANDMARK_DAYS: Tuple[int, ...] = (0, 1, 2, 7, 14, 30)
 
-# CARRIED-OVER REFERENCE VALUES, NOT MEASUREMENTS (CLAUDE.md 8.4, PLAN.md 2.2 and 12.4).
+# CARRIED-OVER REFERENCE VALUES, NOT MEASUREMENTS.
 # They exist only as the comparison target for Gate 2. Nothing downstream may read them
 # as an estimate: the measured values are published beside them under their own keys and
 # a mismatch beyond tolerance is a STOP CONDITION to report, never a number to overwrite
-# in either direction (CLAUDE.md 8.5).
+# in either direction.
 CARRYOVER_MEDIAN_REOP_POD: int = 2
 CARRYOVER_POD01_PCT: float = 42.6
 
@@ -202,7 +202,7 @@ def key_token(text: Any) -> str:
 
     `run_all.py` requires every dotted segment to match `^[a-z0-9][a-z0-9_-]*$`, so the
     locked stratum strings have to be transliterated: `>=75` becomes `ge75`, `1-2` stays
-    `1-2`. The mapping is mechanical and is printed in `derived/notes_03.md` so a reader
+    `1-2`. The mapping is mechanical and is printed in the step's notes file so a reader
     can invert it.
     """
     s = str(text).strip().lower()
@@ -218,7 +218,7 @@ def key_token(text: Any) -> str:
     return s
 
 
-# --- code-set rendering (CLAUDE.md hard rule 5) ----------------------------
+# --- code-set rendering ----------------------------
 # `cpt_acdf.py` is the ONLY place a CPT or ICD code may be written as a literal. S1 has
 # to PRINT those code sets, so it renders the authoritative objects instead of retyping
 # them. These three helpers are deliberately identical in behaviour to the ones
@@ -482,7 +482,7 @@ def grays_test(times: np.ndarray, etypes: np.ndarray, groups: np.ndarray,
 def build_times(df: pd.DataFrame, key: str) -> Tuple[np.ndarray, np.ndarray, Dict[str, int]]:
     """Time and event type for one outcome, from the FROZEN columns only.
 
-    Rules, all of which are stated in `derived/notes_03.md`:
+    Rules, all of which are stated in the step's notes file:
 
       * time zero is the day of the principal operation, postoperative day 0;
       * a patient with the event flag positive and an OBSERVED postoperative day enters
@@ -740,7 +740,7 @@ class Fragment:
         if not any(k == p[:-1] or k.startswith(p) for p in RESERVED_PREFIXES):
             raise SystemExit(
                 f"STOP: fragment key {k!r} is outside this step's reserved namespaces "
-                f"{RESERVED_PREFIXES}. CLAUDE.md 4.2."
+                f"{RESERVED_PREFIXES}."
             )
         if isinstance(value, (list, tuple)):
             vals = []
@@ -795,8 +795,8 @@ def write_csv(path: pathlib.Path, columns: Sequence[str],
               rows: Sequence[Dict[str, Any]]) -> None:
     """Write a table, asserting every header and every cell is renderable.
 
-    CLAUDE.md hard rules 1 and 2 are enforced at WRITE TIME, which is the only place they
-    can be enforced without a grep. Hard rule 7 is enforced here too: any table that
+    The no-em-dash and no-snake_case rules are enforced at WRITE TIME, which is the only place they
+    can be enforced without a grep. The denominator rule is enforced here too: any table that
     reports a percentage must carry the `denominator` column.
     """
     for c in columns:
@@ -804,7 +804,7 @@ def write_csv(path: pathlib.Path, columns: Sequence[str],
     if any("%" in c for c in columns) and DENOM_COLUMN not in columns:
         raise SystemExit(
             f"STOP: {path.name} reports a percentage but carries no {DENOM_COLUMN!r} "
-            f"column (CLAUDE.md hard rule 7)."
+            f"column."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
@@ -840,7 +840,7 @@ def median_iqr_days(values: np.ndarray) -> Tuple[Optional[float], Optional[float
 
 
 # ===========================================================================
-# 0. UNITS AND SCALES (.build_facts.md section 9)
+# 0. UNITS AND SCALES
 # ===========================================================================
 # `.est`, `.lo` and `.hi` are generic confidence-interval suffixes. Four steps use
 # them for four incompatible kinds of quantity: a proportion here, a percentage in
@@ -991,7 +991,7 @@ SCALE_DECLARATIONS: Tuple[Tuple[str, str, Tuple[Tuple[str, str], ...]], ...] = (
 def publish_scale_declarations(frag: Fragment) -> None:
     """Declare the unit of every numeric family this step publishes.
 
-    Binding: `.build_facts.md` section 9. One declaration per namespace, each scoped
+    One declaration per namespace, each scoped
     to its own namespace and saying so, because the merged `results.json` resolves
     `.est` / `.lo` / `.hi` to at least four incompatible scales and the only
     documented rule used to be this step's.
@@ -1137,7 +1137,7 @@ def analysis_gray(df: pd.DataFrame, store: Dict[str, Any], frag: Fragment) -> Di
              f"A stratum with fewer than {VD.MIN_STRATUM_EVENTS} events of the outcome is "
              f"excluded from the test and reported with its count. A comparison left with "
              f"fewer than two strata is not tested and its p value is null.")
-    # CLAUDE.md 6.5, scope ruling 2026-07-31: the minimum stratum size is PROJECT-WIDE
+    # Scope decision (2026-07-31): the minimum stratum size is PROJECT-WIDE
     # and applies to any stratum-level PROPORTION in any step, not only to the
     # safe-discharge curves and not only to a test's membership. The counts, the
     # denominator and the event count are always published; only the proportion is
@@ -1344,7 +1344,7 @@ def analysis_table3a(df: pd.DataFrame, store: Dict[str, Any],
     out["los"] = {"median": lmed, "q1": lq1, "q3": lq3, "n": int(los_obs.size),
                   "missing": int(len(df) - los_obs.size), "max": float(los_obs.max())}
 
-    # Time-to-first-event caveat (PLAN.md section 4, CLAUDE.md 9.18), re-derived here
+    # Time-to-first-event caveat, re-derived here
     # because it is a property of the timing analysis rather than of the cohort build.
     def _yes(col: str) -> np.ndarray:
         return df[col].astype("string").fillna("").str.strip().str.lower().eq("yes").to_numpy()
@@ -1377,7 +1377,7 @@ def analysis_table3a(df: pd.DataFrame, store: Dict[str, Any],
     }
 
     # Tracheostomy slot 1 versus slots 1 and 2, side by side, for the ascertainment
-    # supplement (notes_02.md section 8 item 12 assigns this to 03).
+    # supplement (assigned to this step).
     s1 = int(pd.to_numeric(df["REOP_TRACH"], errors="coerce").fillna(0).sum())
     s12 = int(pd.to_numeric(df["REOP_TRACH_SLOT12"], errors="coerce").fillna(0).sum())
     frag.put("timing.trach.slot1_n", s1)
@@ -1487,7 +1487,7 @@ S1_COLUMNS: Tuple[str, ...] = (
 def _populated_year_range(df: pd.DataFrame, column: str) -> str:
     """The operative years in which a raw column is actually populated in THIS cohort.
 
-    `PLAN.md` 7.3 and `CLAUDE.md` 9.10 give different year ranges for the two reoperation
+    Two earlier statements give different year ranges for the two reoperation
     diagnosis columns, one describing when the column EXISTS and the other when it is
     POPULATED. Rather than assert either, S1 prints what is measured here.
     """
@@ -1654,7 +1654,7 @@ def analysis_s1(df: pd.DataFrame, frag: Fragment,
 
 
 # ===========================================================================
-# 6. The coding-era check (PLAN.md 7.3)
+# 6. The coding-era check
 # ===========================================================================
 def analysis_era(df: pd.DataFrame, frag: Fragment) -> Dict[str, Any]:
     """Year-by-year event rate for EVERY timed outcome, tested for a step at the
@@ -1798,7 +1798,7 @@ def write_era_curves(df: pd.DataFrame, step_keys: Sequence[str], transition: int
                      frag: Fragment) -> List[str]:
     """Era-split curve files, written ONLY for an outcome that carries a step.
 
-    PLAN.md 7.3: an outcome with a step is reported by era and never pooled. If the list
+    An outcome with a step is reported by era and never pooled. If the list
     is empty nothing is written and `07_figures.py` plots the pooled curves, which is what
     `cif.era_split_required` records.
     """
@@ -1913,8 +1913,8 @@ def analysis_s4(df: pd.DataFrame, store: Dict[str, Any], frag: Fragment) -> Dict
     # `HEMATOMA_V0` and `HEMATOMA_V1` are FROZEN columns and the days-to-event field is
     # the same raw reoperation-day column under all three definitions. Pairing a frozen
     # event flag with a frozen raw day column is a sensitivity transform of two frozen
-    # columns and not a cohort derivation; PLAN.md 6.6 and the table and figure inventory
-    # both assign this row to this step. The pairing is PROVED equivalent to the one
+    # columns and not a cohort derivation; the table and figure inventory
+    # assigns this row to this step. The pairing is PROVED equivalent to the one
     # `02_build_cohort.py` performed by re-deriving the primary day column from the same
     # two frozen columns and asserting it reproduces `HEMATOMA_POD` exactly. If that ever
     # fails, the whole block is a stop condition rather than a number to publish.
@@ -2004,19 +2004,19 @@ def analysis_s4(df: pd.DataFrame, store: Dict[str, Any], frag: Fragment) -> Dict
 
 
 # ===========================================================================
-# 8. Gate 2 (CLAUDE.md 8.4): the two carried-over numbers this step owns
+# 8. Gate 2: the two carried-over numbers this step owns
 # ===========================================================================
 def identified_reconciliation() -> Optional[Dict[str, Any]]:
     """Re-derive the hematoma median day and day 0-1 share on the IDENTIFIED rung.
 
-    WHY THIS FILE IS OPENED. CLAUDE.md 8.4 requires the carried-over median postoperative
-    day and day 0-1 share to be re-derived by this pipeline, and `02` established that the
+    WHY THIS FILE IS OPENED. The carried-over median postoperative
+    day and day 0-1 share must be re-derived by this pipeline, and `02` established that the
     carried-over figures are IDENTIFIED-rung numbers. Re-deriving the reconciliation
     therefore needs the identified rung. The alternative is to copy `02`'s number, which
-    binding item 1 of its handoff explicitly forbids ("re-derive; never copy a number out
+    the notes written by `02` explicitly forbid ("re-derive; never copy a number out
     of this note"). `derived/cohort_identified.parquet` is a frozen artefact `02` already
     wrote; two columns are read from it, nothing is written, and no cohort is re-derived.
-    The manuscript reports the ANALYTIC value as primary (CLAUDE.md 4.4); this is the
+    The manuscript reports the ANALYTIC value as primary; this is the
     reconciliation figure that sits beside it.
     """
     if not COHORT_IDENTIFIED.exists():
@@ -2083,7 +2083,7 @@ def analysis_gate2(table3a: Dict[str, Any], frag: Fragment) -> Dict[str, Any]:
         frag.put("timing.gate2.median_pod_reproduces_identified", bool(med_match_i))
         frag.put("timing.gate2.pod01_reproduces_identified", bool(p01_match_i))
 
-    # The verdict. CLAUDE.md 8.5: a mismatch is a stop condition to REPORT, never a
+    # The verdict. A mismatch is a stop condition to REPORT, never a
     # number to overwrite. It is recorded here and printed; it does not raise, because
     # the correct handling of an expected V0-to-V2 movement is disclosure, not a crash.
     verdict_parts = []
@@ -2129,9 +2129,9 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     L: List[str] = []
     a = L.append
 
-    a("# notes_03.md -- handoff from `03_timing.py`")
+    a("# Notes from `03_timing.py`")
     a("")
-    a("Written 2026-07-31. Owner: **T5 (timing)**. Owned files: `03_timing.py`,")
+    a("Written 2026-07-31. Files of this step: `03_timing.py`,")
     a("`outputs/results_03.json`, `derived/notes_03.md`,")
     a("`tables-csv/table3a_complication_timing.csv`, `tables-csv/s1_field_definitions.csv`,")
     a("`tables-csv/s3_km_vs_aalen_johansen.csv`, `tables-csv/s4_sensitivity_03.csv` and")
@@ -2139,13 +2139,13 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("")
     a("Input: `derived/cohort_analytic.parquet` (frozen, n = "
       f"{VD.fmt_count(df_n)}). `derived/cohort_identified.parquet` was opened read-only")
-    a("for two columns, for the Gate 2 identified-rung reconciliation only; see section 8.")
+    a("for two columns, for the Gate 2 identified-rung reconciliation only; see part 8.")
     a("The warehouse and the export CSV were not read at all.")
     a("")
     a("---")
     a("")
 
-    # ---- section 1
+    # ---- part 1
     a("## 1. The estimator, and why it is hand-implemented")
     a("")
     a("**Aalen-Johansen cumulative incidence with death as the competing event**, on")
@@ -2165,7 +2165,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("   non-positive level (verified this run on the smallest fixture that triggers the")
     a(f"   detector: detector fires = {diag.get('tie_detector_fires')}, rejects a zero "
       f"jitter = {diag.get('rejects_zero_jitter')}). A jittered time axis is not a step")
-    a("   function on integers, which `CLAUDE.md` 6.1 requires.")
+    a("   function on integers, which the estimator requires.")
     a("2. **It drops every event at time 0**, independently of the jitter. Its")
     a("   cumulative-incidence column is a `cumsum` over `d1 / n * lagged_survival`.")
     a("   `survival_table_from_events` always synthesises a row at time 0, so time 0 is")
@@ -2236,11 +2236,11 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("worth carrying into the Methods:")
     a("")
     a("* the day-30 cumulative incidence is the empirical cumulative proportion of the")
-    a("  events that carry an observed day, which is the sanity check a reviewer will do")
+    a("  events that carry an observed day, which is the sanity check a reader can do")
     a("  by hand, and it agrees to machine precision rather than approximately. **It is")
     a("  not the crude proportion of all events**, and on the outcomes that lost an event")
     a("  day the two differ, by exactly the events with no recorded day over the same")
-    a("  denominator (`cif.<outcome>.max_understatement_pct`). Section 2.1 tabulates it;")
+    a("  denominator (`cif.<outcome>.max_understatement_pct`). Part 2.1 tabulates it;")
     a("* the whole of the one-minus-Kaplan-Meier gap in supplement S3 is attributable to")
     a("  the competing deaths and to nothing else, because there is no other censoring to")
     a("  share the blame with.")
@@ -2254,7 +2254,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("**Censoring is administrative and non-informative** and this is a genuine strength")
     a("of the design, not a caveat: follow-up is fixed at 30 days from the principal")
     a("operation and complete by construction, there is no loss to follow-up in the")
-    a("ordinary sense, and the risk set is full until day 30 or the first event. Reviewers")
+    a("ordinary sense, and the risk set is full until day 30 or the first event. Readers")
     a("who see a survival analysis assume informative censoring unless told otherwise, so")
     a("the Methods must say it.")
     a("")
@@ -2275,7 +2275,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 2
+    # ---- part 2
     a("## 2. Day 30 cumulative incidence, every outcome")
     a("")
     a("| Outcome | Events | Day 30 cumulative incidence (95% CI) | Competing deaths |")
@@ -2295,7 +2295,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("day, the cumulative events, the competing deaths and a `denominator` column.")
     a("**They are self-sufficient: `07_figures.py` needs nothing else to draw Figure 2.**")
     a("")
-    a("### 2.1 The by-hand sanity check a reviewer will do")
+    a("### 2.1 The by-hand sanity check a reader can do")
     a("")
     a("At day 30 the Aalen-Johansen estimate equals the empirical cumulative proportion of")
     a("the events that carry an observed postoperative day, and is therefore no greater")
@@ -2321,17 +2321,17 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a(f"**{n_gap} of the {len(VD.TIMED_OUTCOMES)} outcomes carry a gap**, and on each of")
     a("them the gap column reproduces `cif.<outcome>.max_understatement_pct` exactly. On")
     a("the rest no event day is missing and the two columns are identical to machine")
-    a("precision, which is the algebraic identity in section 1 and not a coincidence.")
+    a("precision, which is the algebraic identity in part 1 and not a coincidence.")
     a("")
     a("**Do not write the Methods sentence as an equality against the crude proportion.**")
-    a("It would be wrong on the outcomes in the gap column and a reviewer can falsify it")
-    a("with one subtraction. The correct sentence is the one in section 1: the estimator")
+    a("It would be wrong on the outcomes in the gap column and a reader can falsify it")
+    a("with one subtraction. The correct sentence is the one in part 1: the estimator")
     a("reduces to the empirical cumulative proportion of events with an observed day.")
     a("")
     a("---")
     a("")
 
-    # ---- section 3
+    # ---- part 3
     a("## 3. Table 3A and the descriptive timing")
     a("")
     a("`tables-csv/table3a_complication_timing.csv`. One row per timed outcome, in roster")
@@ -2400,7 +2400,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 4
+    # ---- part 4
     a("## 4. Supplement S3: one minus Kaplan-Meier versus Aalen-Johansen")
     a("")
     a("`tables-csv/s3_km_vs_aalen_johansen.csv`. **The magnitude is measured, not assumed")
@@ -2431,7 +2431,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("That row is printed to show the reduction, not as a comparison, and the Methods say")
     a("so rather than reporting a self-competing estimate.")
     a("")
-    a("**What to tell the reviewer who asks why a competing-risks framework was used on a")
+    a("**What to say when asked why a competing-risks framework was used on a")
     a("low-mortality cohort.** The correction is small, and it was measured rather than")
     a("assumed; the correctness of the estimator does not depend on the answer being close")
     a("either way; and in this cohort the Aalen-Johansen estimate is exactly the empirical")
@@ -2441,7 +2441,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 5
+    # ---- part 5
     a("## 5. Gray's test across the four locked stratifiers")
     a("")
     a("`variable_dict.STRATIFIERS`: age group, ASA physical status class, fusion levels and")
@@ -2462,7 +2462,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("and its p value is null.")
     a("")
     a("**The same rule now withholds the stratum-level PROPORTION, not only the test")
-    a("membership.** `CLAUDE.md` 6.5 carries an orchestrator ruling that the minimum")
+    a("membership.** The minimum")
     a(f"stratum size of {VD.MIN_STRATUM_EVENTS} events is project-wide and applies to any")
     a("stratum-level proportion in any step, because a reader cannot be expected to check")
     a("an event count before quoting a percentage. This step previously published a day 30")
@@ -2529,8 +2529,8 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 6
-    a("## 6. The coding-era check (`PLAN.md` 7.3). Re-verified for EVERY outcome.")
+    # ---- part 6
+    a("## 6. The coding-era check. Re-verified for EVERY outcome.")
     a("")
     a("The companion project verified this for hematoma only. An outcome nobody checked")
     a("could carry a step nobody would have seen, so all eight are checked here.")
@@ -2591,22 +2591,22 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("### 6.1 A measurement worth flagging: when the two diagnosis columns are actually "
       "populated")
     a("")
-    a("`PLAN.md` 7.3 says the ninth-revision reoperation diagnosis column runs 2012 to 2020")
-    a("and the tenth-revision one 2014 to 2024. `CLAUDE.md` 9.10 corrects the first to 2012")
+    a("The original specification says the ninth-revision reoperation diagnosis column runs 2012 to 2020")
+    a("and the tenth-revision one 2014 to 2024; a later check corrected the first to 2012")
     a("to 2017 database-wide. **Inside this cohort, measured rather than asserted, the")
     a(f"ninth-revision column is populated {ctx['icd9_years']} and the tenth-revision column")
     a(f"{ctx['icd10_years']}.** Both are narrower than the database-wide statements, which")
     a("is expected for a single procedure family, and the overlap is real. It is published")
     a("as `timing.coding.icd9_arm_populated_years` and")
     a("`timing.coding.icd10_arm_populated_years`, and it is printed in supplement S1 so no")
-    a("year range in the manuscript has to be taken from a plan file. **It is also why the")
+    a("year range in the manuscript has to be taken from a specification document. **It is also why the")
     a("hematoma union is ungated across years**: a year-gated rule would drop the events")
     a("ascertained only by the ninth-revision arm inside the overlap.")
     a("")
     a("---")
     a("")
 
-    # ---- section 7
+    # ---- part 7
     a("## 7. Supplement S4: the sensitivity analyses this step owns")
     a("")
     a("`tables-csv/s4_sensitivity_03.csv`. Four blocks, "
@@ -2643,23 +2643,23 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 8
-    a("## 8. Gate 2 (`CLAUDE.md` 8.4): the two carried-over numbers this step owns")
+    # ---- part 8
+    a("## 8. Gate 2: the two carried-over numbers this step owns")
     a("")
     a("**Re-derived here, not copied.** `02` published its own measurements under a")
     a("data-quality namespace precisely so they could not be mistaken for the published")
-    a("value, and its binding item 1 forbids copying a number out of a handoff note.")
+    a("value, and its notes forbid copying a number out of a notes file.")
     a("")
     ga = gate2["analytic"]
     gi = gate2["identified"]
     a("| Rung | Denominator | Median postoperative day | Day 0 or 1 share |")
     a("|---|---:|---:|---|")
-    a(f"| **Analytic (PRIMARY, `CLAUDE.md` 4.4)** | {VD.fmt_count(ga['n_obs'])} | "
+    a(f"| **Analytic (PRIMARY)** | {VD.fmt_count(ga['n_obs'])} | "
       f"**{ga['median']:.0f}** | **{VD.fmt_n_pct(ga['n01'], ga['n_obs'], 2)}** |")
     if gi is not None:
         a(f"| Identified (reconciliation only) | {VD.fmt_count(gi['day_recorded'])} | "
           f"{gi['median']:.0f} | {VD.fmt_n_pct(gi['pod01_n'], gi['day_recorded'], 2)} |")
-    a(f"| Carried over (`PLAN.md` 2.2) | not recorded | {CARRYOVER_MEDIAN_REOP_POD} | "
+    a(f"| Carried over | not recorded | {CARRYOVER_MEDIAN_REOP_POD} | "
       f"{VD.fmt_pct(CARRYOVER_POD01_PCT, 1)} |")
     a("")
     a("**Verdict.**")
@@ -2679,17 +2679,17 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("**The carried-over 42.6% is an identified-rung figure.** The analytic figure is")
     a("higher, and that is not a discrepancy to reconcile away: it is the same measure on a")
     a("different and correctly stated denominator, plus a documented movement of the")
-    a("hematoma definition from the superseded code set to the current one. `CLAUDE.md` 4.4")
-    a("rules that the manuscript reports the analytic value, so **the analytic value is")
+    a("hematoma definition from the superseded code set to the current one. The study")
+    a("reports the analytic value in the manuscript, so **the analytic value is")
     a("primary and the identified value is printed beside it with its own denominator.**")
-    a("Neither is overwritten (`CLAUDE.md` 8.5).")
+    a("Neither is overwritten.")
     a("")
     a("Read these from `timing.gate2.*`, never from this table.")
     a("")
     a("---")
     a("")
 
-    # ---- section 9
+    # ---- part 9
     a("## 9. The fragment")
     a("")
     a(f"`outputs/results_03.json`, **{nkeys} keys**, every one inside this step's five")
@@ -2725,7 +2725,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 10
+    # ---- part 10
     a("## 10. What `07` (figures) and `08` (manuscript) must know")
     a("")
     a("1. **Figure 2 is drawn from `tables-csv/cif_<outcome>.csv` and nothing else.** One")
@@ -2745,7 +2745,7 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("   owns now carries its own declaration (`cif.scale`, `timing.scale`, `gray.scale`,")
     a("   `era.scale`, `s3.scale`), each with a machine-readable family and unit list, and")
     a("   `08` must read the declaration belonging to the step that owns the key")
-    a("   (`.build_facts.md` section 9).")
+    a("   (the `<namespace>.scale` declaration).")
     a("4. **The 30-day incidence is `cif.<outcome>.day30.pct`, not `cif.<outcome>.crude_pct`.**")
     a("   The two are close and they are not the same quantity: the crude percentage counts")
     a("   every recorded event, the day-30 estimate counts the events that carry an observed")
@@ -2780,14 +2780,14 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("---")
     a("")
 
-    # ---- section 11
+    # ---- part 11
     a("## 11. Decisions this step MADE rather than inherited")
     a("")
-    a("Listed so a reviewer can challenge them.")
+    a("Listed so that a reader can challenge them.")
     a("")
     a("1. **The estimator is hand-implemented** rather than delegated to `lifelines`,")
     a("   because the library jitters tied event times and drops the events at time 0")
-    a("   (section 1). The variance and the transformation are the standard ones, so the")
+    a("   (part 1). The variance and the transformation are the standard ones, so the")
     a("   interval is comparable with any other implementation.")
     a("2. **An event with no recorded day contributes no event and stays in the risk set.**")
     a("   The alternative, placing it at day 30, would fabricate a timing; excluding the")
@@ -2801,23 +2801,23 @@ def write_notes(ctx: Dict[str, Any]) -> None:
     a("   follow-up is exactly the log-rank statistic on subdistribution risk sets.")
     a("5. **The suppression rule drops the sparse stratum rather than the whole comparison**")
     a("   and reports it with its count. Suppressing the entire comparison would discard")
-    a("   the information in the strata that are adequately sized. Since the Batch 3")
-    a("   review the same rule also **withholds that stratum's proportion**, not only its")
-    a("   place in the test, per the project-wide ruling in `CLAUDE.md` 6.5. One decision")
+    a("   the information in the strata that are adequately sized. The same rule")
+    a("   also **withholds that stratum's proportion**, not only its")
+    a("   place in the test, per the project-wide rule. One decision")
     a("   now drives both, so this step and `04` cannot treat the same sparse cell")
     a("   differently again.")
     a("6. **The era-step rule requires both a significant boundary test and the boundary")
-    a("   being the largest adjacent change** (section 6). Either alone would be wrong in a")
+    a("   being the largest adjacent change** (part 6). Either alone would be wrong in a")
     a("   different direction.")
     a("7. **The transition year is read from the frozen era flag**, never typed.")
     a("8. **`derived/cohort_identified.parquet` is opened read-only, for two columns**, to")
     a("   re-derive the Gate 2 identified-rung reconciliation rather than copy it")
-    a("   (section 8). No cohort is derived, nothing is written, and the analytic value")
+    a("   (part 8). No cohort is derived, nothing is written, and the analytic value")
     a("   remains primary.")
     a("9. **The denominator for Table 3A's percentages is the events with the postoperative")
     a("   day recorded**, printed in its own column and repeated in the machine-readable")
     a(f"   `{DENOM_COLUMN}` column.")
-    a("10. **Fragment level tokens are transliterated** (section 5); the display strings")
+    a("10. **Fragment level tokens are transliterated** (part 5); the display strings")
     a("    are never the tokens.")
     a("")
     NOTES_PATH.write_text("\n".join(L) + "\n", encoding="utf-8")
@@ -2854,7 +2854,7 @@ def main() -> int:
 
     publish_scale_declarations(frag)
     print(f"scale declarations ........... {len(SCALE_DECLARATIONS)} namespaces, each "
-          f"scoped to itself (.build_facts.md 9)")
+          f"scoped to itself")
 
     store = analysis_cif(df, frag)
     print("cumulative incidence ......... 8 curves, day-30 estimate equals the empirical "
@@ -2950,7 +2950,7 @@ def main() -> int:
     nkeys = frag.write(FRAGMENT_PATH)
     print(f"fragment ..................... {FRAGMENT_PATH.name}, {nkeys} keys")
 
-    # Independent namespace verification through the orchestrator's own guard.
+    # Independent namespace verification through the pipeline runner's own guard.
     try:
         import importlib.util
         spec = importlib.util.spec_from_file_location("_run_all_guard", HERE / "run_all.py")

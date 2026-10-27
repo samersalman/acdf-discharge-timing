@@ -85,7 +85,7 @@
   "bothways.no_difference_test_note": "No p-value is computed for the difference between the two estimates: they are fitted on the same patients and are therefore correlated, so a two-sample comparison would be invalid.",
   "bothways.no_discrimination_statistic": true,
   "bothways.outcome_label": "Unplanned readmission",
-  "bothways.outcome_prespec_reason": "Unplanned readmission within 30 days was fixed before the first fit, for four reasons: it is the outcome the outpatient spine safety literature leads with, so re-estimating it under both exposure definitions speaks directly to the published claims the measurement critique targets; it is the most frequent adverse outcome in this cohort, so the comparison is powered to show a shift between two definitions rather than sampling noise; it is ascertained after discharge, so unlike an in-hospital complication it cannot mechanically lengthen the index stay and thereby help define the exposure it is regressed on; and it lies entirely outside the companion paper's reserved results.",
+  "bothways.outcome_prespec_reason": "Unplanned readmission within 30 days was fixed before the first fit, for four reasons: it is the outcome the outpatient spine safety literature leads with, so re-estimating it under both exposure definitions speaks directly to the published claims the measurement critique targets; it is the most frequent adverse outcome in this cohort, so the comparison is powered to show a shift between two definitions rather than sampling noise; it is ascertained after discharge, so unlike an in-hospital complication it cannot mechanically lengthen the index stay and thereby help define the exposure it is regressed on; and it lies entirely outside the results of the companion paper.",
   "bothways.scale": "Within the both-ways comparison namespace every estimate and every limit is an ODDS RATIO on the ratio scale, where 1 is the null. They are NOT percentages and must never be multiplied by 100. The exposed and unexposed event rates, the event rate and the discordance are percentages on the 0 to 100 scale. The absolute difference between the two adjusted odds ratios is on the odds-ratio scale; the relative change beside it is a percentage. Every plain count in this namespace is a count of PATIENTS except the event counts, which count outcomes. This declaration governs only the namespace it is named for. It is not a project-wide rule and must never be read as one: the same est, lo and hi suffixes carry proportions in the timing step and percentages in the window step, so read the declaration published by the step that owns the key.",
   "bothways.scale.families": [
     "bothways.<definition>.crude.or",
@@ -4765,7 +4765,7 @@
     6,
     10
   ],
-  "dest.note": "The discharge destination vocabulary changes completely at the era break, collapsing from seven facility levels to two, so the non-home discharge rate is not comparable across the break. The distribution is reported by year because the plan requires it, and no claim that non-home discharge declined is made anywhere in this manuscript.",
+  "dest.note": "The discharge destination vocabulary changes completely at the era break, collapsing from seven facility levels to two, so the non-home discharge rate is not comparable across the break. The distribution is reported by year because the specification requires it, and no claim that non-home discharge declined is made anywhere in this manuscript.",
   "dest.other.n_by_year": [
     10,
     7,
@@ -4896,7 +4896,7 @@
   "dq.carryover.postdisch.closest_denominator": 630,
   "dq.carryover.postdisch.closest_pct": 41.2698,
   "dq.carryover.postdisch.closest_rung": "identified",
-  "dq.carryover.postdisch.note": "PLAN.md section 13 lists the denominator behind the carried-over 41.3% as an open item. Measured here from the frozen columns across every rung and both code sets. 04_postdischarge.py owns the published figure and must re-derive it; the manuscript reports the analytic-cohort value whatever this reconciliation says, because the analytic cohort is the study population (CLAUDE.md 4.4). A mismatch is reported, not overwritten in either direction (CLAUDE.md 8.5).",
+  "dq.carryover.postdisch.note": "The denominator behind the carried-over 41.3% was an open item. Measured here from the frozen columns across every rung and both code sets. 04_postdischarge.py owns the published figure and must re-derive it; the manuscript reports the analytic-cohort value whatever this reconciliation says, because the analytic cohort is the study population. A mismatch is reported, not overwritten in either direction.",
   "dq.carryover.postdisch.owner": "04_postdischarge.py",
   "dq.carryover.postdisch.plan_figure_pct": 41.3,
   "dq.carryover.postdisch.reproduces_to_one_decimal": true,
@@ -5069,7 +5069,7 @@
     "DFAILWEAN"
   ],
   "dq.negflag_days.vent48.reason": "no documented reason: an unexpected value here is a data-quality finding",
-  "dq.scale": "The data-quality namespace publishes counts of patients, counts of hematoma events on the carried-over reconciliations, and percentages on the 0 to 100 scale. TWO families carry a unit their name does not. The carried-over reoperation day, both the plan's own figure and the value re-derived on each rung, is an integer POSTOPERATIVE DAY published under a bare name with no unit in it. The carried-over share on the same rungs is a percentage, and the opposite-tie variant beside it is a percentage on the same denominator and not a difference. Nothing in this namespace is a published result: these are reconciliations against the carried-over figures, and the timing step and the post-discharge step own the published values. This declaration governs only the namespace it is named for. It is not a project-wide rule and must never be read as one: the same est, lo and hi suffixes carry proportions, percentages, odds ratios and a kappa in the analysis steps, so read the declaration published by the step that owns the key.",
+  "dq.scale": "The data-quality namespace publishes counts of patients, counts of hematoma events on the carried-over reconciliations, and percentages on the 0 to 100 scale. TWO families carry a unit their name does not. The carried-over reoperation day, both the original figure and the value re-derived on each rung, is an integer POSTOPERATIVE DAY published under a bare name with no unit in it. The carried-over share on the same rungs is a percentage, and the opposite-tie variant beside it is a percentage on the same denominator and not a difference. Nothing in this namespace is a published result: these are reconciliations against the carried-over figures, and the timing step and the post-discharge step own the published values. This declaration governs only the namespace it is named for. It is not a project-wide rule and must never be read as one: the same est, lo and hi suffixes carry proportions, percentages, odds ratios and a kappa in the analysis steps, so read the declaration published by the step that owns the key.",
   "dq.scale.families": [
     "dq.carryover.median_pod.plan_figure",
     "dq.carryover.pod01.<version>.<rung>.median",
@@ -5657,7 +5657,7 @@
   ],
   "gate.1.columns": 143,
   "gate.1.detail": "both ladders re-counted on the already-derived frame with the added column dropped: identical; both ladders rebuilt from the raw CSV with the added column deleted before any derivation ran: identical, and the added column is provably never read outside its own column build",
-  "gate.1.export_proof": "T1, .build_facts.md 7.1: 124,344 rows compared, 0 rows differing, column order identical after removing the added column, SHA-256 identical.",
+  "gate.1.export_proof": "Export-layer check: 124,344 rows compared, 0 rows differing, column order identical after removing the added column, SHA-256 identical.",
   "gate.1.ladder_unchanged": true,
   "gate.1.note": "Adding the billing-setting column to the variable list moved no row count. The cohort ladder reproduces the pinned constants exactly on the widened bundle; both ladders rebuild identically from the raw CSV with the added column deleted before any derivation runs, so no eligibility predicate and no upstream derivation reads it; and the export layer separately proved this bundle is the parent's bundle plus exactly one column, row for row.",
   "gate.1.parent_columns": 142,
@@ -5699,7 +5699,7 @@
   "gate.a.identified.events": 642,
   "gate.a.identified.n": 124266,
   "gate.a.identified.rate_pct": 0.5166,
-  "gate.a.note": "Reconciliation only. The delta is exactly the top-coded-age patients the plan's strict integer cast nulls, and it carries zero hematoma events. Its output belongs to the ascertainment supplement and never to the manuscript body.",
+  "gate.a.note": "Reconciliation only. The delta is exactly the top-coded-age patients the original specification's strict integer cast nulls, and it carries zero hematoma events. Its output belongs to the ascertainment supplement and never to the manuscript body.",
   "gate.a.pass": true,
   "gate.a.rungs_checked": 8,
   "gate.b.note": "Every rung and every event count asserted against cpt_acdf.COHORT_LADDER_N and COHORT_LADDER_EVENTS. No count is retyped in this step, and the verdict key is computed from that comparison rather than written as a constant.",
@@ -7413,7 +7413,7 @@
   "losfield.disch_by_pod1_n": 81534,
   "losfield.disch_by_pod1_not_discharged_home_any_n": 59,
   "losfield.disch_by_pod1_stillinhosp_n": 4,
-  "losfield.discharge_contamination_note": "SAMEDAY_DISCH and DISCH_BY_POD1 are defined on the postoperative length-of-stay field alone and their definitions are deliberately unchanged, because 05_inout.py needs the raw form for the agreement analysis. They therefore contain patients who did not go home: an expired discharge destination, a recorded death within 30 days, or a still-in-hospital flag. Binding on 05_inout.py: exclude them explicitly and state the exclusion, rather than reporting a same-day-discharge rate that counts deaths as discharges.",
+  "losfield.discharge_contamination_note": "SAMEDAY_DISCH and DISCH_BY_POD1 are defined on the postoperative length-of-stay field alone and their definitions are deliberately unchanged, because 05_inout.py needs the raw form for the agreement analysis. They therefore contain patients who did not go home: an expired discharge destination, a recorded death within 30 days, or a still-in-hospital flag. Required of 05_inout.py: exclude them explicitly and state the exclusion, rather than reporting a same-day-discharge rate that counts deaths as discharges.",
   "losfield.doptodis_gt30_n": 74,
   "losfield.doptodis_max": 112.0,
   "losfield.doptodis_median": 1.0,
@@ -7544,7 +7544,7 @@
     "text, carries no unit",
     "text, carries no unit"
   ],
-  "losfield.stillinhosp_bounding_note": "Binding on 04_postdischarge.py: these are the patients the bounding sensitivity must be conditioned on. A patient never discharged inside the follow-up window cannot have had an event after a discharge that did not occur, so the STILLINHOSP-conditioned bound is the primary one and the naive unconditional bound may be shown only beside it, labelled as such.",
+  "losfield.stillinhosp_bounding_note": "Required of 04_postdischarge.py: these are the patients the bounding sensitivity must be conditioned on. A patient never discharged inside the follow-up window cannot have had an event after a discharge that did not occur, so the STILLINHOSP-conditioned bound is the primary one and the naive unconditional bound may be shown only beside it, labelled as such.",
   "losfield.stillinhosp_disch_by_pod1_n": 4,
   "losfield.stillinhosp_levels_observed": [
     "No",
@@ -7619,7 +7619,7 @@
   "missing.hematoma.lost_los_missing_stillinhosp_n": 9,
   "missing.hematoma.lost_total_n": 10,
   "missing.hematoma.lost_total_pct": 1.8484,
-  "missing.note_event_rate_versus_missingness": "The database-wide percentages carried in the plan for each days-to-event field are EVENT RATES, not missingness rates: a days-to-event field is populated only for patients who had the event. The quantity that matters, and that was unmeasured before this project, is the missingness of the days-to-event field CONDITIONAL on the event flag being positive, which is what this supplement reports.",
+  "missing.note_event_rate_versus_missingness": "The database-wide percentages quoted earlier for each days-to-event field are EVENT RATES, not missingness rates: a days-to-event field is populated only for patients who had the event. The quantity that matters, and that was unmeasured before this project, is the missingness of the days-to-event field CONDITIONAL on the event flag being positive, which is what this supplement reports.",
   "missing.pneumonia.all_los_loss_is_stillinhosp": true,
   "missing.pneumonia.bounding_required": false,
   "missing.pneumonia.day_missing_n": 1,
@@ -9555,8 +9555,8 @@
   ],
   "timingfield.los_rule_note": "The 0 to 30 day rule applies to days-to-event fields only. Length of stay is not a window-bounded quantity: a patient may legitimately stay in hospital for more than 30 days, and truncating a length of stay would corrupt the discharge-timing analysis this project exists to do.",
   "timingfield.loss_all_los_loss_is_stillinhosp": true,
-  "timingfield.loss_bounding_handoff": "Binding on 04_postdischarge.py: report the STILLINHOSP-conditioned bound as the primary bounding sensitivity, and show the naive unconditional bound only beside it, labelled as the unconditional extreme.",
-  "timingfield.loss_decomposition_note": "The loss between rows 1 and 4 of the PLAN.md 6.2 denominator ladder is decomposed into three disjoint reasons: the days-to-event field is missing; the length of stay is missing on a patient flagged still in hospital beyond 30 days; and the length of stay is missing on a patient not so flagged. Nothing is reclassified and no ladder count moves. The split exists because a patient who was never discharged inside the follow-up window cannot have had the event after a discharge that did not occur, so for those rows the 'all missing events post-discharge' extreme is structurally impossible rather than merely conservative.",
+  "timingfield.loss_bounding_handoff": "Required of 04_postdischarge.py: report the STILLINHOSP-conditioned bound as the primary bounding sensitivity, and show the naive unconditional bound only beside it, labelled as the unconditional extreme.",
+  "timingfield.loss_decomposition_note": "The loss between rows 1 and 4 of the denominator ladder is decomposed into three disjoint reasons: the days-to-event field is missing; the length of stay is missing on a patient flagged still in hospital beyond 30 days; and the length of stay is missing on a patient not so flagged. Nothing is reclassified and no ladder count moves. The split exists because a patient who was never discharged inside the follow-up window cannot have had the event after a discharge that did not occur, so for those rows the 'all missing events post-discharge' extreme is structurally impossible rather than merely conservative.",
   "timingfield.loss_stillinhosp_column": "STILLINHOSP",
   "timingfield.outcomes": [
     "hematoma",

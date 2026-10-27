@@ -15,3 +15,11 @@ scipy==1.17.1
 statsmodels==0.14.6
 lifelines==0.29.0
 pyarrow==23.0.0
+
+# Added for the additional analyses in analysis/revision/ (statsmodels and scipy above are also
+# used there). patsy builds the spline year terms of a4_year_trend.py; matplotlib draws
+# Supplement Figures S1 to S4 and is not needed when ACDF_FIGURES=0. These two pins are the
+# versions installed in the CPython 3.14.0 environment in which those analyses were run and
+# checked; they were not tested under CPython 3.12.10.
+patsy==1.0.2
+matplotlib==3.10.8

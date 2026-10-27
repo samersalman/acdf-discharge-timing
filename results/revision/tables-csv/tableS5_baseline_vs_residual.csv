@@ -1,0 +1,14 @@
+Stratifier,Stratum,Patients,Composite events,denominator,"Baseline risk: 30-day cumulative incidence, % (95% CI)",Observed 0.5% threshold day (95% CI),Remains below 0.5% through day 30,Observed 0.25% threshold day (95% CI),Remains below 0.25% through day 30,Day residual risk falls below 50% of the stratum's own baseline (95% CI),Remains below 50% of baseline through day 30,Day residual risk falls below 25% of the stratum's own baseline (95% CI),Remains below 25% of baseline through day 30,Day residual risk falls below 10% of the stratum's own baseline (95% CI),Remains below 10% of baseline through day 30,Baseline-only predicted 0.5% day,Observed minus predicted 0.5% day (days),Baseline-only predicted 0.25% day,Observed minus predicted 0.25% day (days),"Observed minus predicted 0.25% day, 95% CI (days)"
+Overall,All patients,"112,642","1,015","112,642",0.901 (0.847–0.953),3 (3 to 3),Yes,7 (6 to 8),Yes,3 (3 to 4),Yes,8 (7 to 8),Yes,13 (12 to 15),Yes,3,0,7,0,Reference
+Age group,18–49 years,"34,191",140,"34,191",0.409 (0.339–0.474),0 (0 to 0),Yes,2 (1 to 2),Yes,2 (2 to 3),Yes,7 (5 to 9),Yes,11 (9 to 17),Yes,0,0,3,-1,-1 to 0
+Age group,50–64 years,"50,845",455,"50,845",0.895 (0.818–0.974),3 (3 to 4),Yes,7 (6 to 8),Yes,4 (3 to 5),Yes,8 (7 to 8),Yes,12 (11 to 16),Yes,3,0,7,0,-1 to 1
+Age group,65–74 years,"20,946",278,"20,946",1.327 (1.179–1.490),5 (4 to 7),Yes,10 (8 to 12),Yes,3 (3 to 4),Yes,8 (7 to 10),Yes,14 (12 to 17),Yes,5,0,9,1,-1 to 2
+Age group,75 years or older,"6,660",142,"6,660",2.132 (1.817–2.448),8 (6 to 12),Yes,14 (10 to 19),Yes,4 (3 to 4),Yes,8 (6 to 10),Yes,15 (12 to 20),Yes,8,0,12,2,-2 to 7
+ASA physical status class,Class 1 or 2,"58,815",291,"58,815",0.495 (0.437–0.549),0 (0 to 1),Yes,3 (2 to 4),Yes,3 (2 to 4),Yes,7 (6 to 8),Yes,11 (10 to 15),Yes,0,0,3,0,-2 to 1
+ASA physical status class,Class 3 or 4,"53,827",724,"53,827",1.345 (1.248–1.442),5 (5 to 6),Yes,10 (9 to 11),Yes,4 (3 to 4),Yes,8 (7 to 9),Yes,14 (12 to 16),Yes,5,0,9,1,-1 to 2
+Fusion levels,1 level,"62,889",490,"62,889",0.779 (0.714–0.852),3 (2 to 3),Yes,6 (5 to 7),Yes,3 (3 to 4),Yes,8 (7 to 9),Yes,14 (12 to 18),Yes,3,0,6,0,-1 to 1
+Fusion levels,2 levels,"43,470",428,"43,470",0.985 (0.895–1.077),3 (3 to 4),Yes,7 (6 to 8),Yes,3 (3 to 4),Yes,8 (7 to 8),Yes,12 (10 to 14),Yes,3,0,8,-1,-1 to 1
+Fusion levels,3 or more levels,"6,283",97,"6,283",1.544 (1.257–1.862),6 (4 to 9),Yes,11 (8 to 15),Yes,3 (3 to 4),Yes,8 (6 to 10),Yes,15 (10 to 20),Yes,6,0,10,1,-2 to 5
+Sex,Male,"56,387",667,"56,387",1.183 (1.089–1.275),5 (4 to 5),Yes,9 (8 to 10),Yes,4 (3 to 4),Yes,8 (7 to 9),Yes,13 (12 to 15),Yes,4,1,9,0,-1 to 1
+Sex,Female,"56,220",348,"56,220",0.619 (0.557–0.687),1 (1 to 2),Yes,4 (3 to 5),Yes,3 (3 to 3),Yes,7 (6 to 8),Yes,15 (12 to 19),Yes,1,0,5,-1,-2 to 1
+Sex,Non-binary,35,0,35,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed,Suppressed

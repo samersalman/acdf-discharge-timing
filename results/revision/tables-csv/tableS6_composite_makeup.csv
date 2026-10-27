@@ -1,0 +1,11 @@
+Section,Category,Patients,denominator,Share of all patients (%),Note
+Components of the primary composite (a patient can have more than one),Hematoma requiring reoperation,541,"112,642",0.480%,"Reoperation slot 1; crude share of all patients, whereas Table S6A gives the cumulative incidence with death as a competing event"
+Components of the primary composite (a patient can have more than one),Unplanned reintubation,483,"112,642",0.429%,Airway component
+Components of the primary composite (a patient can have more than one),Ventilator dependence beyond 48 hours,348,"112,642",0.309%,Airway component
+Components of the primary composite (a patient can have more than one),Reoperative tracheostomy,24,"112,642",0.021%,Airway component; reoperation slot 1 only
+Components of the primary composite (a patient can have more than one),Composite airway morbidity,608,"112,642",0.540%,"Reintubation, ventilator dependence beyond 48 hours or reoperative tracheostomy; the three components overlap, so they do not sum to this row"
+Components of the primary composite (a patient can have more than one),Primary composite outcome,"1,015","112,642",0.901%,Hematoma requiring reoperation or composite airway morbidity
+Composition of the primary composite (each patient counted once),Hematoma requiring reoperation only,407,"112,642",0.361%,
+Composition of the primary composite (each patient counted once),Composite airway morbidity only,474,"112,642",0.421%,
+Composition of the primary composite (each patient counted once),Both hematoma requiring reoperation and composite airway morbidity,134,"112,642",0.119%,Overlap count
+Composition of the primary composite (each patient counted once),"Total, equal to the primary composite","1,015","112,642",0.901%,"407 + 474 + 134 = 1,015"

@@ -1,0 +1,34 @@
+Panel,Postoperative days or start of day,Hospital status at the start of the day,"Events, n","Patient-days at risk, n","Events per 100,000 patient-days (95% CI)","Rate ratio, in hospital over discharged (95% CI)","Patients event free and alive, n","Share of the event-free and alive set, %","Age group: 75 years or older, n (%)","ASA physical status class: Class 3 or 4, n (%)","Fusion levels: 3 or more levels, n (%)"
+A,Day 0,Still in hospital,205,"112,559",182.1 (158.0 to 208.8),Not applicable,,,,,
+A,Day 0,Already discharged,0,0,Not applicable,,,,,,
+A,Day 0,Stay not recorded,4,83,Suppressed,,,,,,
+A,Day 1,Still in hospital,149,"97,646",152.6 (129.1 to 179.2),Suppressed,,,,,
+A,Day 1,Already discharged,2,"14,705",Suppressed,,,,,,
+A,Day 1,Stay not recorded,5,79,Suppressed,,,,,,
+A,Day 2,Still in hospital,120,"30,699",390.9 (324.1 to 467.4),15.17 (9.49 to 25.40),,,,,
+A,Day 2,Already discharged,21,"81,499",25.8 (16.0 to 39.4),,,,,,
+A,Day 2,Stay not recorded,7,74,Suppressed,,,,,,
+A,Day 3,Still in hospital,47,"13,530",347.4 (255.2 to 461.9),12.67 (7.73 to 21.16),,,,,
+A,Day 3,Already discharged,27,"98,517",27.4 (18.1 to 39.9),,,,,,
+A,Day 3,Stay not recorded,2,67,Suppressed,,,,,,
+A,Days 4 to 6,Still in hospital,77,"16,384",470.0 (370.9 to 587.4),19.49 (14.02 to 27.08),,,,,
+A,Days 4 to 6,Already discharged,77,"319,317",24.1 (19.0 to 30.1),,,,,,
+A,Days 4 to 6,Stay not recorded,7,190,Suppressed,,,,,,
+A,Days 7 to 13,Still in hospital,31,"9,256",334.9 (227.6 to 475.4),18.48 (12.10 to 27.43),,,,,
+A,Days 7 to 13,Already discharged,140,"772,566",18.1 (15.2 to 21.4),,,,,,
+A,Days 7 to 13,Stay not recorded,5,383,Suppressed,,,,,,
+A,Days 14 to 30,Still in hospital,5,"3,670",Suppressed,Suppressed,,,,,
+A,Days 14 to 30,Already discharged,77,"1,892,204",4.1 (3.2 to 5.1),,,,,,
+A,Days 14 to 30,Stay not recorded,7,806,Suppressed,,,,,,
+B,Start of day 1,All patients event free and alive,,,,,"112,430",100.0,"6,639 (5.9)","53,699 (47.8)","6,266 (5.6)"
+B,Start of day 1,Still in hospital,,,,,"97,646",86.9,"6,075 (6.2)","47,984 (49.1)","5,890 (6.0)"
+B,Start of day 1,Already discharged,,,,,"14,705",13.1,553 (3.8),"5,647 (38.4)",371 (2.5)
+B,Start of day 1,Stay not recorded,,,,,79,0.1,11 (13.9),68 (86.1),5 (6.3)
+B,Start of day 3,All patients event free and alive,,,,,"112,114",100.0,"6,588 (5.9)","53,458 (47.7)","6,232 (5.6)"
+B,Start of day 3,Still in hospital,,,,,"13,530",12.1,"1,628 (12.0)","9,081 (67.1)","1,156 (8.5)"
+B,Start of day 3,Already discharged,,,,,"98,517",87.9,"4,951 (5.0)","44,320 (45.0)","5,071 (5.1)"
+B,Start of day 3,Stay not recorded,,,,,67,0.1,9 (13.4),57 (85.1),5 (7.5)
+B,Start of day 7,All patients event free and alive,,,,,"111,857",100.0,"6,538 (5.8)","53,266 (47.6)","6,209 (5.6)"
+B,Start of day 7,Still in hospital,,,,,"2,647",2.4,459 (17.3),"2,053 (77.6)",188 (7.1)
+B,Start of day 7,Already discharged,,,,,"109,152",97.6,"6,071 (5.6)","51,165 (46.9)","6,016 (5.5)"
+B,Start of day 7,Stay not recorded,,,,,58,0.1,8 (13.8),48 (82.8),5 (8.6)

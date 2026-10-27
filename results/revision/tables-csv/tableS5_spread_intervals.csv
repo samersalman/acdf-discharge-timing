@@ -1,0 +1,25 @@
+Stratifier,Comparison (first stratum minus second stratum),Measure,"Patients, first stratum","Patients, second stratum","First stratum, observed value","Second stratum, observed value",Difference (first minus second),"Difference, 95% bootstrap CI",Ratio (first divided by second),"Ratio, 95% bootstrap CI",Replicates excluded from the difference (n),Replicates excluded from the ratio (n),Included replicates with the difference zero or negative (%),Difference interval includes zero,Single-stratum intervals of Table 5 overlap,Bootstrap replicates (n)
+Age group,75 years or older minus 18–49 years,Day residual risk falls below 0.5%,"6,660","34,191",8,0,8,6 to 12,Undefined (second day is 0),Not estimable,0,997,0.0,No,No,1000
+Age group,75 years or older minus 18–49 years,Day residual risk falls below 0.25%,"6,660","34,191",14,2,12,8 to 17,7.00,5.00 to 14.02,0,0,0.0,No,No,1000
+Age group,75 years or older minus 18–49 years,"30-day cumulative incidence, % (difference in percentage points)","6,660","34,191",2.132,0.409,1.723,1.376–2.060,5.21,4.16 to 6.54,0,0,0.0,No,Not applicable,1000
+Age group,50–64 years minus 18–49 years,Day residual risk falls below 0.5%,"50,845","34,191",3,0,3,3 to 4,Undefined (second day is 0),Not estimable,0,997,0.0,No,No,1000
+Age group,50–64 years minus 18–49 years,Day residual risk falls below 0.25%,"50,845","34,191",7,2,5,4 to 7,3.50,3.00 to 8.00,0,0,0.0,No,No,1000
+Age group,50–64 years minus 18–49 years,"30-day cumulative incidence, % (difference in percentage points)","50,845","34,191",0.895,0.409,0.485,0.383–0.595,2.19,1.83 to 2.68,0,0,0.0,No,Not applicable,1000
+Age group,65–74 years minus 50–64 years,Day residual risk falls below 0.5%,"20,946","50,845",5,3,2,0 to 4,1.67,1.00 to 2.33,0,0,2.8,Yes,Yes,1000
+Age group,65–74 years minus 50–64 years,Day residual risk falls below 0.25%,"20,946","50,845",10,7,3,1 to 5,1.43,1.12 to 1.71,0,0,1.2,No,Yes,1000
+Age group,65–74 years minus 50–64 years,"30-day cumulative incidence, % (difference in percentage points)","20,946","50,845",1.327,0.895,0.432,0.257–0.609,1.48,1.27 to 1.71,0,0,0.0,No,Not applicable,1000
+Age group,75 years or older minus 65–74 years,Day residual risk falls below 0.5%,"6,660","20,946",8,5,3,0 to 7,1.60,1.00 to 2.50,0,0,7.5,Yes,Yes,1000
+Age group,75 years or older minus 65–74 years,Day residual risk falls below 0.25%,"6,660","20,946",14,10,4,0 to 9,1.40,1.00 to 2.00,0,0,3.8,Yes,Yes,1000
+Age group,75 years or older minus 65–74 years,"30-day cumulative incidence, % (difference in percentage points)","6,660","20,946",2.132,1.327,0.805,0.443–1.187,1.61,1.32 to 1.95,0,0,0.0,No,Not applicable,1000
+ASA physical status class,Class 3 or 4 minus Class 1 or 2,Day residual risk falls below 0.5%,"53,827","58,815",5,0,5,4 to 6,Undefined (second day is 0),Not estimable,0,587,0.0,No,No,1000
+ASA physical status class,Class 3 or 4 minus Class 1 or 2,Day residual risk falls below 0.25%,"53,827","58,815",10,3,7,5 to 9,3.33,2.25 to 5.00,0,0,0.0,No,No,1000
+ASA physical status class,Class 3 or 4 minus Class 1 or 2,"30-day cumulative incidence, % (difference in percentage points)","53,827","58,815",1.345,0.495,0.850,0.748–0.961,2.72,2.40 to 3.12,0,0,0.0,No,Not applicable,1000
+Fusion levels,2 levels minus 1 level,Day residual risk falls below 0.5%,"43,470","62,889",3,3,0,0 to 2,1.00,1.00 to 2.00,0,0,42.0,Yes,Yes,1000
+Fusion levels,2 levels minus 1 level,Day residual risk falls below 0.25%,"43,470","62,889",7,6,1,0 to 3,1.17,1.00 to 1.60,0,0,18.3,Yes,Yes,1000
+Fusion levels,2 levels minus 1 level,"30-day cumulative incidence, % (difference in percentage points)","43,470","62,889",0.985,0.779,0.205,0.100–0.319,1.26,1.12 to 1.43,0,0,0.0,No,Not applicable,1000
+Fusion levels,3 or more levels minus 2 levels,Day residual risk falls below 0.5%,"6,283","43,470",6,3,3,0 to 6,2.00,1.00 to 3.00,0,0,6.3,Yes,Yes,1000
+Fusion levels,3 or more levels minus 2 levels,Day residual risk falls below 0.25%,"6,283","43,470",11,7,4,0 to 8,1.57,1.00 to 2.14,0,0,3.8,Yes,Yes,1000
+Fusion levels,3 or more levels minus 2 levels,"30-day cumulative incidence, % (difference in percentage points)","6,283","43,470",1.544,0.985,0.559,0.245–0.867,1.57,1.23 to 1.92,0,0,0.0,No,Not applicable,1000
+Sex,Male minus Female,Day residual risk falls below 0.5%,"56,387","56,220",5,1,4,2 to 4,5.00,2.00 to 5.00,0,0,0.0,No,No,1000
+Sex,Male minus Female,Day residual risk falls below 0.25%,"56,387","56,220",9,4,5,3 to 6,2.25,1.60 to 3.00,0,0,0.0,No,No,1000
+Sex,Male minus Female,"30-day cumulative incidence, % (difference in percentage points)","56,387","56,220",1.183,0.619,0.564,0.448–0.678,1.91,1.68 to 2.18,0,0,0.0,No,Not applicable,1000

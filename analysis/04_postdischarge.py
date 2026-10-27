@@ -2,9 +2,6 @@
 """04_postdischarge.py -- the proportion of events occurring after the patient's own
 discharge, and the denominator ladder that makes it honest.
 
-PLAN.md sections 4, 6.2, 6.6 and 7.2. CLAUDE.md sections 4 (interface), 5 (hard rules 7
-and 8), 6.3 (the locked tie convention), 8.4 (Gate 2) and 9.19 (the readmission caveat).
-
 This is the paper's central novel measure and it has a denominator problem that is handled
 in the open. The comparison needs BOTH the days-to-event field and the postoperative
 length-of-stay field present on the same row, so the denominator is not "all events": it is
@@ -15,7 +12,7 @@ Inputs
     derived/cohort_analytic.parquet     FROZEN by 02. n = 112,642. The only data source.
     derived/cohort_identified.parquet   FROZEN by 02. Read for ONE number only: the
                                         identified-rung reconciliation of the carried-over
-                                        41.3% (CLAUDE.md 8.4). See the deviation note below.
+                                        41.3%. See the deviation note below.
     variable_dict.py                    TIMED_OUTCOMES, STRATIFIERS, labels, fmt_ helpers
     outputs/results_02.json             OPTIONAL, comparison only, never a source of a
                                         published value. See "cross-check" below.
@@ -27,9 +24,9 @@ Outputs
     tables-csv/s4_sensitivity_04.csv              This step's share of Supplement S4
     outputs/results_04.json                       flat dotted keys, prefixes postdisch. /
                                                   denom. / missing. and nothing else
-    derived/notes_04.md                           the handoff for 07 and 08
+    derived/notes_04.md                           the notes for 07 and 08
 
-The five-row ladder (PLAN.md 6.2), per timed outcome
+The five-row ladder, per timed outcome
 ----------------------------------------------------
     1  Events in the analytic cohort
     2  Events with the days-to-event field non-missing
@@ -39,23 +36,23 @@ The five-row ladder (PLAN.md 6.2), per timed outcome
 
 Row 5 is the only row carrying a percentage and its N is printed with it. Every drop
 between rows is reported as an absolute count and as a percentage of row 1. No proportion
-in this manuscript appears without its own denominator (CLAUDE.md hard rules 7 and 8).
+in this manuscript appears without its own denominator.
 
 02 froze TIMED_BOTH_<X>, whose sum is row 4 exactly. This step USES it and VERIFIES it
 against its own computation rather than assuming it.
 
-The tie convention is LOCKED (CLAUDE.md 6.3)
+The tie convention is LOCKED
 --------------------------------------------
     POSTDISCH_<X> = (POD_<X> > LOS_POSTOP)
 
 An event on the same postoperative day as discharge counts as PRE-discharge. That is the
 conservative choice for a safety claim: it does not credit the observation window with
 catching an event that may in fact have occurred at home. The opposite convention
-(POD >= LOS_POSTOP) is a required sensitivity and CLAUDE.md 4.1 grants THIS STEP the single
+(POD >= LOS_POSTOP) is a required sensitivity, and THIS STEP is granted the single
 explicit exception to the no-local-derivation rule so it can be computed inline from the
 frozen POD_* and LOS_POSTOP columns.
 
-Readmission is EXCLUDED from the post-discharge fraction (CLAUDE.md 9.19)
+Readmission is EXCLUDED from the post-discharge fraction
 ------------------------------------------------------------------------
 READMPODAYS1 is days from the principal operation to readmission, so a readmission is BY
 CONSTRUCTION a post-discharge event for anyone who was discharged. Its post-discharge
@@ -67,7 +64,7 @@ reason printed beside it.
 
 THE BOUNDING SENSITIVITY, and why the naive bound is wrong here
 ---------------------------------------------------------------
-PLAN.md 6.2 requires a bounding sensitivity for any outcome losing more than 5% of its
+The specification requires a bounding sensitivity for any outcome losing more than 5% of its
 events between rows 1 and 4: recompute under the two extreme assumptions, all missing
 events pre-discharge and all missing events post-discharge, and report the interval.
 
@@ -75,15 +72,15 @@ events pre-discharge and all missing events post-discharge, and report the inter
 BECAUSE LOS_POSTOP IS MISSING, 100% BELONG TO A PATIENT FLAGGED STILLINHOSP = 'Yes'. A
 patient still admitted beyond postoperative day 30 was never discharged inside the
 follow-up window, so an event on such a row CANNOT have occurred after that patient's own
-discharge: there was no discharge for it to fall after. For those rows PLAN.md 6.2's "all
+discharge: there was no discharge for it to fall after. For those rows the specification's "all
 missing events post-discharge" extreme is not merely conservative, it is STRUCTURALLY
-IMPOSSIBLE, and the naive interval is materially wider than the data supports. PLAN.md 6.2
+IMPOSSIBLE, and the naive interval is materially wider than the data supports. The specification
 itself says an interval wide enough to change the clinical message replaces the point
 estimate, which makes printing a spuriously wide one a real harm.
 
-BINDING (.build_facts.md 7.5 item 7): the STILLINHOSP-conditioned bound is PRIMARY and the
+RULE: the STILLINHOSP-conditioned bound is PRIMARY and the
 naive unconditional bound is shown only beside it, explicitly labelled as the unconditional
-extreme. This step re-measures the decomposition itself rather than trusting the handoff.
+extreme. This step re-measures the decomposition itself rather than trusting earlier notes.
 
 Both bounds place the previously unplaced events, so both are computed on a row-1
 denominator, not a row-4 one. The complete-case point estimate in Table 3B row 5 is on row
@@ -94,25 +91,25 @@ left to guess.
 Two deliberate deviations from "read the analytic parquet only", both narrow
 ---------------------------------------------------------------------------
 1. `derived/cohort_identified.parquet` is read for exactly one quantity: the
-   identified-rung hematoma post-discharge fraction that CLAUDE.md 8.4 requires be
+   identified-rung hematoma post-discharge fraction, which must be
    re-derived rather than copied. It is a frozen 02 artefact; no cohort is re-derived and
    the warehouse is never touched. Copying 02's published number instead would satisfy the
    letter of "read the analytic parquet only" and break the stronger instruction to
-   re-derive. Recorded here so a reviewer can challenge it.
+   re-derive. Recorded here so that a reader can challenge it.
 2. The V0 hematoma post-discharge fraction masks the frozen RETORPODAYS column by the
    frozen HEMATOMA_V0 column, which is the same construction 02 used for the primary. It is
    a sensitivity transform of two frozen columns, the same character as the tie-convention
-   exception, and CLAUDE.md 8.4 names HEMATOMA_V0 as available for exactly this purpose.
+   exception, and HEMATOMA_V0 is available for exactly this purpose.
 
 Cross-check against 02, comparison only
 ---------------------------------------
 Where `outputs/results_02.json` is present, every ladder count, loss decomposition and
 carried-over reconciliation this step derives is COMPARED against 02's published key. A
-mismatch is printed as a BLOCKER and recorded, never adopted and never overwritten
-(CLAUDE.md 8.5). No published value in this step is ever read from that file, and the step
+mismatch is printed as a BLOCKER and recorded, never adopted and never overwritten.
+No published value in this step is ever read from that file, and the step
 runs to completion without it.
 
-Namespace (CLAUDE.md 4.2)
+Namespace
 -------------------------
 This fragment writes `postdisch.`, `denom.` and `missing.` and nothing else. Anything
 outside those three prefixes is rejected here, before the merge, with the offending key
@@ -134,7 +131,7 @@ import pandas as pd
 
 import variable_dict as VD
 
-# CLAUDE.md hard rule 4. Nothing in this step draws on the global NumPy stream today; the
+# Nothing in this step draws on the global NumPy stream today; the
 # seed is set anyway so that adding a resampling check later cannot make the step
 # irreproducible by omission.
 np.random.seed(VD.SEED)
@@ -155,38 +152,38 @@ TABLE_3B_CSV = TABLES_DIR / "table3b_postdischarge_ladder.csv"
 S2_CSV = TABLES_DIR / "s2_timing_missingness.csv"
 S4_CSV = TABLES_DIR / "s4_sensitivity_04.csv"
 
-# CLAUDE.md 4.2. Mirrors run_all.RESERVED_PREFIXES["04"] exactly.
+# Mirrors run_all.RESERVED_PREFIXES["04"] exactly.
 RESERVED_PREFIXES: Tuple[str, ...] = ("postdisch.", "denom.", "missing.")
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*)*$")
 
-# PLAN.md 6.2. An outcome losing more than this share of its events between ladder rows 1
+# An outcome losing more than this share of its events between ladder rows 1
 # and 4 requires the bounding sensitivity.
 BOUNDING_THRESHOLD_PCT = 5.0
 
-# PLAN.md 2.2 / CLAUDE.md 8.4. The carried-over figure, its tolerance, and the population
+# The carried-over figure, its tolerance, and the population
 # it turns out to belong to. It is a TARGET to reproduce, never a value to publish.
 CARRYOVER_POSTDISCH_PCT = 41.3
 CARRYOVER_TOLERANCE_DECIMALS = 1
 
 # The still-in-hospital flag, read as text. 02 published the observed level set; this step
 # asserts it rather than assuming, because a casing change between PUF vintages would
-# otherwise silently turn every flagged patient into an unflagged one (CLAUDE.md 9.13).
+# otherwise silently turn every flagged patient into an unflagged one.
 STILLINHOSP_COL = "STILLINHOSP"
 STILLINHOSP_YES = "yes"
 
 # The one raw DISCHDEST level this step reads, and only as a diagnostic on the death
-# outcome's tie behaviour. It is a data value, not a CPT or ICD code, so hard rule 5 does
+# outcome's tie behaviour. It is a data value, not a CPT or ICD code, so the code-literal rule does
 # not reach it.
 DISCHDEST_EXPIRED = "Expired"
 
 
 # ---------------------------------------------------------------------------
-# UNITS AND SCALES (.build_facts.md section 9)
+# UNITS AND SCALES
 #
 # The rule is: NEVER infer a scale from a key suffix, and read the declaration published by
-# the step that OWNS the key. Section 9.3 closed the fourteen namespaces owned by 03, 05 and
-# 06; section 9.6 records that this step's three were never asked for theirs, so a gate
-# obeying 9.2 item 4 would fail on every key this file publishes, including the ones
+# the step that OWNS the key. The fourteen namespaces owned by 03, 05 and
+# 06 already declare theirs; this step's three had not, so a gate
+# asking each key for its unit would fail on every key this file publishes, including the ones
 # Figure 3 is drawn from. These declarations close that gap for 04.
 #
 # Every count here is a count of EVENTS, not of patients, with one exception: the analytic
@@ -374,7 +371,7 @@ if sorted(_DECLARED_NS) != sorted(p.rstrip(".") for p in RESERVED_PREFIXES):
     raise SystemExit(
         f"[{STEP}] SCALE_DECLARATIONS covers {sorted(_DECLARED_NS)} but this step reserves "
         f"{sorted(p.rstrip('.') for p in RESERVED_PREFIXES)}. Every reserved namespace "
-        f"declares its own units (.build_facts.md 9.2 item 2).")
+        f"declares its own units.")
 if len(set(_DECLARED_NS)) != len(_DECLARED_NS):
     raise SystemExit(f"[{STEP}] SCALE_DECLARATIONS declares a namespace twice: {_DECLARED_NS}")
 
@@ -404,8 +401,7 @@ def scale_family_regex(pattern: str) -> "re.Pattern":
 def publish_scale_declarations(results: Dict[str, Any]) -> None:
     """Declare the unit of every numeric family this step publishes.
 
-    Binding: `.build_facts.md` section 9, and 9.6 specifically, which records this step's
-    three namespaces as part of the gap. One declaration per namespace, each scoped to its
+    One declaration per namespace, each scoped to its
     own namespace and saying so, because the merged `results.json` resolves the generic
     interval suffixes to at least four incompatible scales and no step's rule is project
     wide.
@@ -420,7 +416,7 @@ def publish_scale_declarations(results: Dict[str, Any]) -> None:
 def assert_scale_coverage(results: Dict[str, Any]) -> int:
     """Every published key resolves to exactly one declared family. Raises otherwise.
 
-    This is what makes `.build_facts.md` 9.2 item 4 satisfiable without a special case: a
+    This is what makes a unit lookup satisfiable without a special case: a
     gate can ask this fragment for the unit of ANY key it holds and get one answer. A new
     key added without a family fails here, inside the step that created it, rather than in
     a downstream gate that cannot know what the key means.
@@ -449,7 +445,7 @@ def assert_scale_coverage(results: Dict[str, Any]) -> int:
         problems.append(f"matched by more than one declared family: {sorted(ambiguous)[:10]}")
     if problems:
         raise SystemExit(
-            f"[{STEP}] scale-declaration coverage gap (.build_facts.md 9.2 item 4):\n       "
+            f"[{STEP}] scale-declaration coverage gap:\n       "
             + "\n       ".join(problems))
     return scale_family_count()
 
@@ -462,7 +458,7 @@ def pct(n: float, d: float, decimals: int = 4) -> Optional[float]:
 
     None rather than 0.0, because a percentage of nothing is not zero percent: it does not
     exist, and writing 0.0 would let a reader treat an empty stratum as a measured null
-    result (CLAUDE.md hard rule 8).
+    result.
     """
     if d is None or d == 0:
         return None
@@ -494,7 +490,7 @@ def slug_level(level: str) -> str:
     The locked stratifier levels carry '>=' (`>=3`, `>=75`), which the fragment key regex
     rejects, so they are rendered `ge3` / `ge75`. Hyphenated bands (`18-49`, `1-2`) pass
     through unchanged. The mapping is one way and is only ever used to name a key; the
-    reviewer-facing text always comes from `pretty_level`.
+    reader-facing text always comes from `pretty_level`.
     """
     s = str(level).strip().lower()
     s = s.replace(">=", "ge").replace("<=", "le").replace(">", "gt").replace("<", "lt")
@@ -511,7 +507,7 @@ def stratifier_key(column: str) -> str:
 
 
 def level_display(column: str, level: str) -> str:
-    """The reviewer-facing label for a stratum level (CLAUDE.md hard rule 2)."""
+    """The reader-facing label for a stratum level."""
     if column == "MALE":
         return VD.pretty_level(column, int(level))
     return VD.pretty_level(column, level)
@@ -534,7 +530,7 @@ def as_flag(series: pd.Series) -> pd.Series:
 def write_csv(path: Path, columns: Sequence[str], rows: Sequence[Dict[str, Any]]) -> None:
     """Write one table, asserting every header and every cell is renderable.
 
-    CLAUDE.md hard rules 1 and 2 are enforced at WRITE TIME, per the constitution, not by a
+    The no-em-dash and no-snake_case rules are enforced at WRITE TIME, not by a
     later grep. `assert_renderable` raises on a literal em-dash or an unrendered snake_case
     identifier.
     """
@@ -558,13 +554,13 @@ def write_csv(path: Path, columns: Sequence[str], rows: Sequence[Dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------
-# THE DENOMINATOR LADDER (PLAN.md 6.2, table 3B)
+# THE DENOMINATOR LADDER (table 3B)
 # ---------------------------------------------------------------------------
 def build_ladder(df: pd.DataFrame, still: pd.Series) -> Dict[str, Dict[str, Any]]:
     """Every ladder quantity, every loss decomposition and every post-discharge count.
 
     One dict per timed outcome, keyed by the roster key. Nothing here is copied from a
-    handoff note: every count is computed from the frozen columns and then CHECKED against
+    notes file: every count is computed from the frozen columns and then CHECKED against
     the frozen TIMED_BOTH_<X> and POSTDISCH_<X> columns 02 materialised.
     """
     out: Dict[str, Dict[str, Any]] = {}
@@ -599,7 +595,7 @@ def build_ladder(df: pd.DataFrame, still: pd.Series) -> Dict[str, Dict[str, Any]
             (postdisch_frozen_col.notna() & ~both).sum()
         )
 
-        # The opposite tie convention. CLAUDE.md 4.1 grants this step, and only this step,
+        # The opposite tie convention. This step, and only this step, has
         # the right to compute it inline from the frozen POD_* and LOS_POSTOP columns.
         post_opposite = int((both & (pod >= los)).sum())
 
@@ -684,12 +680,12 @@ def build_ladder(df: pd.DataFrame, still: pd.Series) -> Dict[str, Dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
-# STRATA (PLAN.md 6.2, CLAUDE.md 6.5)
+# STRATA
 # ---------------------------------------------------------------------------
 def build_strata(df: pd.DataFrame) -> Dict[Tuple[str, str, str], Dict[str, Any]]:
     """The post-discharge fraction inside each pre-specified stratum.
 
-    Four stratifiers, fixed a priori in CLAUDE.md 6.5, and nothing else: no interaction
+    Four stratifiers, fixed a priori, and nothing else: no interaction
     strata, no data-driven cut points, no additional variable. The suppression rule is
     `variable_dict.MIN_STRATUM_EVENTS`, applied to the stratum's own ROW 4 denominator,
     which is the denominator of the proportion being reported. A suppressed stratum still
@@ -752,9 +748,9 @@ def v0_pod(frame: pd.DataFrame) -> pd.Series:
     """The hematoma reoperation day under the SUPERSEDED V0 code set.
 
     RETORPODAYS masked by the frozen HEMATOMA_V0 column, which is exactly the construction
-    02 used to build HEMATOMA_POD from the primary flag (cohort_schema.md). It exists so
+    02 used to build HEMATOMA_POD from the primary flag. It exists so
     the movement between the code set the carried-over 41.3% was measured under and this
-    project's primary can be quantified rather than asserted (CLAUDE.md 8.4). The 0-to-30
+    project's primary can be quantified rather than asserted. The 0-to-30
     integer handling rule is re-asserted here rather than assumed, because this column is
     built outside 02's helper.
     """
@@ -790,7 +786,7 @@ def compare_to_02(ladder: Dict[str, Dict[str, Any]], carryover: Dict[str, Any],
                   ref: Optional[Dict[str, Any]]) -> List[str]:
     """Every disagreement between this step's re-derivation and 02's published keys.
 
-    A mismatch is REPORTED, never adopted and never overwritten (CLAUDE.md 8.5). Nothing
+    A mismatch is REPORTED, never adopted and never overwritten. Nothing
     published by this step is ever read from 02's fragment; this function only compares.
     """
     if ref is None:
@@ -867,7 +863,7 @@ def clean_fragment(results: Dict[str, Any]) -> Dict[str, Any]:
         elif isinstance(v, np.bool_):
             v = bool(v)
         if isinstance(v, float) and not math.isfinite(v):
-            v = None                       # JSON has no NaN; write null (CLAUDE.md 4.2).
+            v = None                       # JSON has no NaN; write null.
         elif isinstance(v, (list, tuple)):
             items = []
             for item in v:
@@ -887,7 +883,7 @@ def clean_fragment(results: Dict[str, Any]) -> Dict[str, Any]:
             bad_val.append(key)
         out[key] = v
     # Every STRING value in the fragment is a candidate for rendered prose: 08 reads the
-    # merged file and quotes these notes. CLAUDE.md hard rules 1 and 2 are therefore
+    # merged file and quotes these notes. The no-em-dash and no-snake_case rules are therefore
     # enforced here as well as at CSV write time, so a raw column name cannot reach the
     # manuscript through a fragment note.
     #
@@ -898,7 +894,7 @@ def clean_fragment(results: Dict[str, Any]) -> Dict[str, Any]:
     # manuscript would be a defect in the consumer, not in this list. The exemption is by
     # key suffix and reaches nothing else, including the scale PROSE beside it, which is
     # written to pass the check like any other note. This is the same shape as the
-    # reference-DOI exemption CLAUDE.md 6a.5 requires: structural, and as small as possible.
+    # reference-DOI exemption: structural, and as small as possible.
     bad_text = []
     for key, value in out.items():
         if key.endswith(".scale.families"):
@@ -988,7 +984,7 @@ def build_fragment(ladder: Dict[str, Dict[str, Any]],
         "result; the timing curve shape is reported instead."
     )
     r["missing.note_event_rate_versus_missingness"] = (
-        "The database-wide percentages carried in the plan for each days-to-event field are "
+        "The database-wide percentages quoted earlier for each days-to-event field are "
         "EVENT RATES, not missingness rates: a days-to-event field is populated only for "
         "patients who had the event. The quantity that matters, and that was unmeasured "
         "before this project, is the missingness of the days-to-event field CONDITIONAL on "
@@ -1073,7 +1069,7 @@ def build_fragment(ladder: Dict[str, Dict[str, Any]],
         r[f"{base}.suppressed"] = cell["suppressed"]
         if cell["suppressed"]:
             # Rendered, not raw: this list is a fragment value and 08 may print it, so a
-            # raw column name here would be a snake_case leak (CLAUDE.md hard rule 2).
+            # raw column name here would be a snake_case leak.
             suppressed.append(VD.assert_renderable(
                 f"{VD.short(VD.timed_outcome(okey).event_col)}, "
                 f"{VD.pretty(column)} {level_display(column, level)}, "
@@ -1112,14 +1108,13 @@ def build_fragment(ladder: Dict[str, Dict[str, Any]],
         "than asserted."
     )
 
-    # .build_facts.md 9.6: declare the unit of every family this step publishes, LAST, so
+    # Declare the unit of every family this step publishes, LAST, so
     # the coverage assertion sees the complete fragment. Additive metadata only; nothing
     # above is read, renamed or recomputed here.
     n_families = assert_scale_coverage(r)
     publish_scale_declarations(r)
     print(f"[{STEP}]   scale declarations: {len(SCALE_DECLARATIONS)} namespaces, "
-          f"{n_families} families, each scoped to its own namespace "
-          f"(.build_facts.md 9.6)")
+          f"{n_families} families, each scoped to its own namespace")
     return r
 
 
@@ -1291,7 +1286,7 @@ GATE2_SENSITIVITY = "Population and code set behind the carried over post-discha
 
 
 def write_s4(ladder: Dict[str, Dict[str, Any]], carryover: Dict[str, Any]) -> None:
-    """This step's share of Supplement S4 (PLAN.md 6.6).
+    """This step's share of Supplement S4.
 
     Two sensitivities are owned here: the opposite tie convention, and the extreme
     assumption bounds on missing timing fields. The Gate 2 reconciliation of the
@@ -1404,11 +1399,9 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
                 carryover: Dict[str, Any],
                 context: Dict[str, Any],
                 fragment: Dict[str, Any]) -> None:
-    """`derived/notes_04.md`, the handoff this step owns.
+    """The notes file of this step (`derived/notes_04.md`).
 
-    CLAUDE.md 3 concurrency rule: a task running inside a parallel batch does not write to
-    `.build_facts.md` at all. Everything a later step needs goes here and into the final
-    report.
+    Everything a later step needs goes here and into the final report.
     """
     def f(key: str) -> str:
         value = fragment[key]
@@ -1424,9 +1417,9 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
 
     lines: List[str] = []
     add = lines.append
-    add("# notes_04.md -- handoff from `04_postdischarge.py`")
+    add("# Notes from `04_postdischarge.py`")
     add("")
-    add("Written by `04_postdischarge.py`. Owner: **T6 (post-discharge)**. Owned files:")
+    add("Written by `04_postdischarge.py`. Files of this step:")
     add("`04_postdischarge.py`, `outputs/results_04.json`, `derived/notes_04.md`,")
     add("`tables-csv/table3b_postdischarge_ladder.csv`, `tables-csv/s2_timing_missingness.csv`,")
     add("`tables-csv/s4_sensitivity_04.csv`. Nothing else was created or modified.")
@@ -1439,7 +1432,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("**Re-derive, never copy.** Every number below was computed from")
     add("`derived/cohort_analytic.parquet` in this step and then CHECKED against the frozen")
     add("columns and, where available, against `02`'s published keys. A mismatch is reported,")
-    add("not overwritten in either direction (`CLAUDE.md` 8.5).")
+    add("not overwritten in either direction.")
     add("")
     add("---")
     add("")
@@ -1476,7 +1469,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("---")
     add("")
-    add("## 1. THE DENOMINATOR LADDER (`PLAN.md` 6.2), Table 3B")
+    add("## 1. THE DENOMINATOR LADDER, Table 3B")
     add("")
     add("The comparison requires **both** the days-to-event field and the postoperative")
     add("length-of-stay field on the same row, so the denominator is not \"all events\": it is")
@@ -1499,19 +1492,19 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("Row 5 is the only row carrying a percentage and its N is printed with it. Every drop")
     add("between rows is an absolute count and a percentage of row 1. **No proportion in this")
-    add("manuscript appears without its own denominator** (`CLAUDE.md` hard rules 7 and 8).")
+    add("manuscript appears without its own denominator**.")
     add("")
     add("**The loss is driven by the length-of-stay arm, not by missing event days.** Across")
     add("all eight outcomes the days-to-event field is missing on at most a fraction of a")
     add("percent of events; what removes events from the denominator is a missing postoperative")
     add("length of stay, and every one of those belongs to a patient who was still in hospital")
-    add("beyond day 30. That is the whole content of section 3 below.")
+    add("beyond day 30. That is the whole content of part 3 below.")
     add("")
     add("---")
     add("")
     add("## 2. The post-discharge fraction, with its denominator")
     add("")
-    add(f"**Tie convention, locked** (`CLAUDE.md` 6.3): {VD.TIE_CONVENTION} That is,")
+    add(f"**Tie convention, locked**: {VD.TIE_CONVENTION} That is,")
     add("`POSTDISCH = (POD > LOS_POSTOP)`, which is the conservative choice for a safety claim:")
     add("it does not credit the observation window with catching an event that may in fact have")
     add("occurred at home.")
@@ -1527,7 +1520,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
             f"{rec['pct_opposite']:.2f}% | +{rec['tie_delta_pp']:.2f} pp |")
     add("")
     add("**Unplanned readmission is excluded from this table by pre-specification**")
-    add("(`CLAUDE.md` 9.19, roster flag `postdisch_eligible = False`). The days-to-readmission")
+    add("(roster flag `postdisch_eligible = False`). The days-to-readmission")
     add("field counts from the principal operation, so a readmission is a post-discharge event")
     add("BY CONSTRUCTION for anyone who was discharged, and its fraction is uninformative. The")
     add("frozen column exists and is deliberately not published as a result. **The Methods must")
@@ -1553,7 +1546,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("## 3. THE BOUNDING SENSITIVITY, and why the naive bound is wrong here")
     add("")
-    add("`PLAN.md` 6.2 requires a bounding sensitivity for any outcome losing more than 5% of")
+    add("The specification requires a bounding sensitivity for any outcome losing more than 5% of")
     add("its events between rows 1 and 4. **Three outcomes trip the rule** and the measurement")
     add("below is this step's own, not `02`'s:")
     add("")
@@ -1569,10 +1562,10 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("because the postoperative length of stay is missing, 100% belong to a patient flagged")
     add("still in hospital beyond postoperative day 30, on every outcome that loses any. A")
     add("patient who was never discharged inside the follow-up window cannot have had an event")
-    add("**after a discharge that did not occur**, so for those rows `PLAN.md` 6.2's \"all")
+    add("**after a discharge that did not occur**, so for those rows the specification's \"all")
     add("missing events post-discharge\" extreme is **structurally impossible** rather than")
     add("merely conservative, and the naive interval is materially wider than the data")
-    add("supports. `PLAN.md` 6.2 also says an interval wide enough to change the clinical")
+    add("supports. The specification also says an interval wide enough to change the clinical")
     add("message replaces the point estimate, which makes printing a spuriously wide one a real")
     add("harm.")
     add("")
@@ -1636,9 +1629,9 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("---")
     add("")
-    add("## 4. The opposite tie convention (`PLAN.md` 6.6)")
+    add("## 4. The opposite tie convention")
     add("")
-    add("`CLAUDE.md` 4.1 grants this step the single explicit exception to the")
+    add("This step is granted the single explicit exception to the")
     add("no-local-derivation rule so the opposite convention can be computed inline from the")
     add("frozen postoperative-day and length-of-stay columns. It is deliberately not")
     add("materialised by `02`, so it cannot be used by accident.")
@@ -1670,7 +1663,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("---")
     add("")
-    add("## 5. Strata (`CLAUDE.md` 6.5), pre-specified and not hunted")
+    add("## 5. Strata, pre-specified and not hunted")
     add("")
     add("Four stratifiers fixed a priori and nothing else: age group, ASA class, fusion levels")
     add(f"and sex. Suppression rule, set before the numbers were seen: a stratum whose own")
@@ -1714,9 +1707,9 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("## 6. GATE 2: the carried-over 41.3%, re-derived with its denominator stated")
     add("")
-    add("`CLAUDE.md` 8.4 requires the carried-over \"41.3% of hematoma reoperations occur after")
-    add("that patient's own discharge\" to be re-derived **with its denominator stated**.")
-    add("`PLAN.md` 13 listed the denominator as an open item because the parent never recorded")
+    add("The carried-over \"41.3% of hematoma reoperations occur after")
+    add("that patient's own discharge\" must be re-derived **with its denominator stated**.")
+    add("The denominator was an open item because the parent never recorded")
     add("it. `02` resolved it and this step RE-DERIVES rather than copies.")
     add("")
     add("| Population | code set | events | denominator (both fields) | post-discharge | percent |")
@@ -1735,7 +1728,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add(f"{carryover['identified']['pct']:.2f}%, which rounds to "
         f"{carryover['identified']['pct']:.1f}% to one decimal: reproduces = "
         f"**{'TRUE' if carryover['reproduces_identified'] else 'FALSE'}**. On the analytic")
-    add(f"cohort, which `CLAUDE.md` 4.4 mandates as this manuscript's population, the same")
+    add(f"cohort, which is this manuscript's population, the same")
     add(f"measure is **{VD.fmt_count(carryover['analytic']['n'])} of "
         f"{VD.fmt_count(carryover['analytic']['denominator'])} = "
         f"{carryover['analytic']['pct']:.2f}%**, which is")
@@ -1744,7 +1737,7 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("**That is not a discrepancy to reconcile away.** It is the same measure on a different")
     add("and correctly stated denominator, and stating the denominator is exactly the")
-    add("resolution `PLAN.md` 13 asked for. Report the analytic value as primary with its")
+    add("resolution that was asked for. Report the analytic value as primary with its")
     add("denominator; state the identified-rung reconciliation beside it.")
     add("")
     add("**The code-set movement is small and documented.** The carried-over figure was")
@@ -1755,14 +1748,14 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("are far inside the one-decimal tolerance, so the code-set correction is not what moves")
     add("the number: the population is.")
     add("")
-    add("**Deviation recorded so a reviewer can challenge it.** Re-deriving the identified-rung")
+    add("**Deviation recorded so that a reader can challenge it.** Re-deriving the identified-rung")
     add("figure requires the identified cohort, so this step reads")
     add("`derived/cohort_identified.parquet` for that one quantity. It is a frozen `02`")
     add("artefact; no cohort is re-derived and the warehouse is never touched. Copying `02`'s")
     add("published number instead would have satisfied \"read the analytic parquet only\" and")
     add("broken the stronger instruction to re-derive. The superseded-code-set figure masks the")
     add("frozen reoperation-day column by the frozen superseded hematoma flag, which is the")
-    add("same construction `02` used for the primary and which `CLAUDE.md` 8.4 names as")
+    add("same construction `02` used for the primary and which is")
     add("available for exactly this purpose.")
     add("")
     add("---")
@@ -1771,17 +1764,17 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("")
     add("1. **Read `outputs/results.json`, never this file.** Every number above is a fragment")
     add("   key under `postdisch.`, `denom.` or `missing.`. This project has recorded instances")
-    add("   of a count being copied wrong out of a handoff note while the artefact was right.")
+    add("   of a count being copied wrong out of a notes file while the artefact was right.")
     add("2. **No post-discharge fraction may be printed without row 4 beside it**")
-    add("   (`CLAUDE.md` hard rule 8). The key is `postdisch.<outcome>.denominator`, and")
-    add("   Figure 3 must print it on each bar (`.build_facts.md` 6).")
+    add("   The key is `postdisch.<outcome>.denominator`, and")
+    add("   Figure 3 must print it on each bar.")
     add("3. **Unplanned readmission has no post-discharge fraction.** `postdisch.readmit.n` and")
     add("   `.pct` are null by design and `postdisch.readmit.eligible` is false. The Methods")
     add("   state the reason (`postdisch.readmit_excluded_reason`) rather than printing a")
     add("   near-100% figure as a finding.")
     add("4. **The conditioned bound is the primary bounding sensitivity** and the unconditional")
     add("   one may appear only beside it, labelled as the unconditional extreme. The one-")
-    add("   sentence justification is in section 3 above and in `postdisch.bound_primary_rule`.")
+    add("   sentence justification is in part 3 above and in `postdisch.bound_primary_rule`.")
     add("5. **The bounds are percentages of row 1 and the point estimate is a percentage of")
     add("   row 4.** Do not present them on a common axis without saying so")
     add("   (`postdisch.bound_denominator_note`).")
@@ -1791,29 +1784,29 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
         f"{carryover['analytic']['pct']:.1f}%), with the identified-rung reconciliation")
     add("   beside it. Do not print the carried-over figure as this paper's result.")
     add("7. **Cite the published external estimate rather than presenting it as confirmation.**")
-    add("   `CLAUDE.md` 6a.2 records an indexed paper reporting 37% of ACDF hematoma")
+    add("   An indexed paper reports 37% of ACDF hematoma")
     add("   reoperations occurring after discharge. Two independent analyses landing near each")
     add("   other is corroboration; neither confirms the other's exact value.")
-    add("8. **Death's opposite-convention figure must never be quoted bare.** Section 4 above")
+    add("8. **Death's opposite-convention figure must never be quoted bare.** Part 4 above")
     add("   explains why: for a patient who died in hospital the recorded length of stay is the")
     add("   day of death.")
     add("9. **Stratum keys have the shape**")
     add("   `postdisch.<outcome>.by.<stratifier>.<level>.{n,denominator,pct,suppressed}`, with")
     add("   `>=` slugged to `ge` (`ge3`, `ge75`) and sex as 1 and 0. The level is a key")
-    add("   segment only; reviewer-facing text always comes from `pretty_level`. A")
+    add("   segment only; reader-facing text always comes from `pretty_level`. A")
     add("   `.unclassified_denominator_n` key beside each stratifier carries the events with")
     add("   both fields recorded that fall outside every declared level, and it is zero")
     add("   everywhere on this cohort.")
     add("10. **Supplement S2 covers every timing field that carries a timed outcome in the")
     add("    roster.** The second-event fields sit outside the roster and are reported by `03`")
-    add("    (`CLAUDE.md` 9.18).")
+    add("    (all analyses are time-to-first-event).")
     add("11. **Do not confuse an event rate with a missingness rate.** The database-wide")
-    add("    percentages in `PLAN.md` 2.4 are event rates, because a days-to-event field is")
+    add("    percentages quoted earlier are event rates, because a days-to-event field is")
     add("    populated only for patients who had the event. S2 reports the conditional")
     add("    missingness, which is the quantity that matters and was unmeasured before this")
     add("    project.")
     add("12. **All three of this step's namespaces now declare their own units**")
-    add("    (`.build_facts.md` 9.6, closed here). Each publishes `<namespace>.scale` as")
+    add("    (closed here). Each publishes `<namespace>.scale` as")
     add("    prose, `<namespace>.scale.families` and `<namespace>.scale.units` as two")
     add("    parallel machine-readable lists, and `<namespace>.scale.other_numeric_keys` as")
     add("    the catch-all, in the same shape `03`, `05` and `06` use. "
@@ -1847,18 +1840,18 @@ def write_notes(ladder: Dict[str, Dict[str, Any]],
     add("   the complete-case denominator and make the sensitivity vacuous.")
     add("3. **The suppression rule is applied to the stratum's own row 4**, the denominator of")
     add("   the proportion being reported, and it withholds the PROPORTION while publishing the")
-    add("   counts. `CLAUDE.md` 6.5 sets the threshold on composite events for a plotted curve;")
+    add("   counts. For a plotted curve the threshold is set on composite events;")
     add("   the analogue for a reported proportion is its own denominator.")
     add("4. **Readmission keeps its full ladder rows 1 to 4** and loses only row 5. The ladder")
     add("   is honest for it and `03` needs the same denominators for the curve.")
     add("5. **The whole eight-outcome roster gets a ladder**, including death, because the")
     add("   ladder is a measurement-quality statement and suppressing it for an outcome would")
-    add("   hide the one number a reviewer would ask for.")
+    add("   hide the one number a reader would ask for.")
     add("")
 
     text = "\n".join(lines) + "\n"
     if VD.EM_DASH in text:
-        raise SystemExit(f"[{STEP}] notes_04.md contains a literal em-dash")
+        raise SystemExit(f"[{STEP}] the notes file contains a literal em-dash")
     NOTES_MD.parent.mkdir(parents=True, exist_ok=True)
     NOTES_MD.write_text(text, encoding="utf-8")
 
@@ -1876,8 +1869,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not ANALYTIC_PARQUET.exists():
         raise SystemExit(
             f"[{STEP}] {ANALYTIC_PARQUET} does not exist. Run 02_build_cohort.py first; "
-            f"this step never re-derives a cohort and never reads the warehouse "
-            f"(CLAUDE.md 4.1).")
+            f"this step never re-derives a cohort and never reads the warehouse.")
 
     print(f"[{STEP}] 04_postdischarge.py  --  the post-discharge fraction and its "
           f"denominator ladder")
@@ -1893,7 +1885,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if absent:
         raise SystemExit(
             f"[{STEP}] the frozen cohort is missing {absent}. That is a bug in 02, not a "
-            f"licence to compute it locally (CLAUDE.md 4.1).")
+            f"licence to compute it locally.")
 
     levels = sorted({str(x).strip() for x in df[STILLINHOSP_COL].dropna().unique()})
     still = df[STILLINHOSP_COL].astype("string").str.strip().str.lower().eq(STILLINHOSP_YES)
@@ -1924,7 +1916,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if offenders:
             raise SystemExit(
                 f"[{STEP}] STOP CONDITION: {label} is FALSE for {offenders}. This step does "
-                f"not adjust a count to make a check pass (CLAUDE.md 8.5).")
+                f"not adjust a count to make a check pass.")
     all_row4 = all(r["row4_matches_frozen"] for r in ladder.values())
     all_mono = all(r["monotone"] for r in ladder.values())
     all_post = all(r["post_matches_frozen"] for r in ladder.values())
@@ -1946,8 +1938,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
               f"{ident.shape[1]} for the Gate 2 identified-rung reconciliation only")
     else:
         raise SystemExit(
-            f"[{STEP}] {IDENTIFIED_PARQUET} does not exist and CLAUDE.md 8.4 requires the "
-            f"identified-rung reconciliation of the carried-over post-discharge fraction to "
+            f"[{STEP}] {IDENTIFIED_PARQUET} does not exist and the "
+            f"identified-rung reconciliation of the carried-over post-discharge fraction must "
             f"be RE-DERIVED rather than copied. Run 02_build_cohort.py first.")
 
     carryover = {
@@ -1985,7 +1977,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
               f"(no published value in this step is ever read from it)")
     elif problems:
         print(f"[{STEP}]   CROSS-CHECK BLOCKER: {len(problems)} disagreement(s) with 02's "
-              f"published keys. Reported, not overwritten (CLAUDE.md 8.5):")
+              f"published keys. Reported, not overwritten:")
         for problem in problems:
             print(f"[{STEP}]     {problem}")
     else:
@@ -2049,7 +2041,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     # --- the headline, printed so the run log carries it -------------------
     print("")
-    print(f"[{STEP}] THE DENOMINATOR LADDER (PLAN.md 6.2), analytic cohort {analytic_n:,}")
+    print(f"[{STEP}] THE DENOMINATOR LADDER, analytic cohort {analytic_n:,}")
     print(f"[{STEP}]   {'outcome':38s} {'r1':>6s} {'r2':>6s} {'r3':>6s} {'r4':>6s} "
           f"{'lost':>6s} {'post':>6s} {'% of r4':>9s}")
     for o in VD.TIMED_OUTCOMES:
@@ -2060,8 +2052,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
               f"{rec['row2']:6,} {rec['row3']:6,} {rec['row4']:6,} "
               f"{rec['lost_row4']:6,} {post:>6s} {share:>9s}")
     print("")
-    print(f"[{STEP}] BOUNDING SENSITIVITY, conditioned bound PRIMARY "
-          f"(.build_facts.md 7.5 item 7)")
+    print(f"[{STEP}] BOUNDING SENSITIVITY, conditioned bound PRIMARY")
     for o in VD.TIMED_OUTCOMES:
         rec = ladder[o.key]
         if not rec["eligible"] or not rec["bounding_required"]:
@@ -2093,7 +2084,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print("")
     if problems:
         print(f"[{STEP}] NOTE: {len(problems)} cross-check disagreement(s) with 02 are "
-              f"recorded in results_04.json and notes_04.md, not overwritten.")
+              f"recorded in results_04.json and the notes file, not overwritten.")
     print(f"[{STEP}] done")
     return 0
 

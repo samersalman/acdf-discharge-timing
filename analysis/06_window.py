@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""06_window.py - the risk-stratified SAFE DISCHARGE WINDOW (PLAN.md 6.5, CLAUDE.md 6.4).
+"""06_window.py - the risk-stratified SAFE DISCHARGE WINDOW.
 
-THE ESTIMAND, locked in CLAUDE.md 6.4 and .build_facts.md section 2 before any
+THE ESTIMAND, locked before any
 estimator was run:
 
     For a given patient stratum and the pre-specified composite outcome, the SAFE
@@ -19,7 +19,7 @@ function, NOT a hazard. On the fixed 30-day window,
 
 Death is a COMPETING event, so the numerator is the Aalen-Johansen cumulative
 incidence and not one minus Kaplan-Meier: a patient who died on day 3 is not at risk
-of a hematoma reoperation on day 7 (PLAN.md 6.1). The size of that correction is
+of a hematoma reoperation on day 7. The size of that correction is
 measured and published in tables-csv/s4_sensitivity_06.csv rather than assumed small.
 
 DAY INDEXING, and why it is the START of day D. The two statements the estimand has
@@ -33,7 +33,7 @@ on the same integer day cannot be ordered, and crediting the observation window 
 catching a same-day event would shorten the recommended window on an assumption the
 data cannot support. The opposite (end-of-day) indexing is reported as a sensitivity.
 
-WHAT THIS STEP MUST NOT DO (CLAUDE.md 6.6 and 7.1). This project fits no new
+WHAT THIS STEP MUST NOT DO. This project fits no new
 multivariable hematoma risk model and builds no points score; both belong to the
 companion hematoma paper. No coefficient is estimated here, no odds ratio is
 reported, and no discrimination statistic is presented. The stratifiers are the
@@ -77,7 +77,7 @@ sys.path.insert(0, str(ROOT))
 
 import variable_dict as VD  # noqa: E402
 
-# CLAUDE.md hard rule 4. This is the ONE step in the project that draws on the global
+# This is the ONE step in the project that draws on the global
 # NumPy stream (the within-stratum bootstrap), so seeding it is load-bearing for
 # reproducibility and two consecutive runs must be byte-identical.
 np.random.seed(VD.SEED)
@@ -93,13 +93,13 @@ TABLE5_CSV = TABLES / "table5_safe_discharge_day.csv"
 TABLE5B_CSV = TABLES / "table5b_conditional_risk.csv"
 S4_CSV = TABLES / "s4_sensitivity_06.csv"
 
-# CLAUDE.md 4.2: this step's reserved fragment namespaces. Anything else is rejected by
+# This step's reserved fragment namespaces. Anything else is rejected by
 # the merge and stops the pipeline, so it is rejected here first, where the cause is.
 RESERVED_PREFIXES: Tuple[str, ...] = ("window.", "condrisk.", "suppress.")
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*)*$")
 
 DAYS = VD.FOLLOWUP_DAYS + 1          # postoperative days 0 through 30 inclusive
-BOOTSTRAP_REPLICATES = 1000          # .build_facts.md section 2, locked
+BOOTSTRAP_REPLICATES = 1000          # locked
 CI_ALPHA = 0.05
 NOT_REACHED = "Not reached within 30 days"
 SUPPRESSED_TEXT = "Suppressed"
@@ -108,7 +108,7 @@ NOT_APPLICABLE = "Not applicable"
 # Sentinel for a bootstrap replicate in which a threshold is never crossed inside the
 # window. It is strictly greater than every real day, so a percentile that lands on it
 # is honestly reported as "not reached" rather than silently clipped to day 30
-# (CLAUDE.md hard rule 9: do not extrapolate past day 30).
+# (do not extrapolate past day 30).
 UNREACHED_DAY = VD.FOLLOWUP_DAYS + 1
 
 STRATIFIER_DISPLAY: Dict[str, str] = {
@@ -138,10 +138,10 @@ LEVEL_SLUG_OVERRIDE: Dict[Tuple[str, str], str] = {
 # `MALE` Int8-missing for the patients whose sex is recorded as neither male nor female,
 # deliberately, because folding them into the female reference group would be
 # misclassification; `SEX` still carries the recorded value. Without this map the residual
-# level falls through to VD.MISSING_LABEL and a reviewer-facing table asserts the data are
+# level falls through to VD.MISSING_LABEL and a reader-facing table asserts the data are
 # missing when they are recorded. The DISPLAY STRING is never written here: it is resolved
 # through variable_dict.pretty_level() on the source column, so the label layer stays the
-# single source of truth (CLAUDE.md hard rule 2).
+# single source of truth.
 RESIDUAL_SOURCE_COLUMN: Dict[str, str] = {
     "MALE": "SEX",
 }
@@ -151,7 +151,7 @@ RESIDUAL_SOURCE_COLUMN: Dict[str, str] = {
 # fragment key is a machine identifier that `verify_numbers.py` (STRATUM_SLUGS) and
 # `08_generate_manuscript.py` both address by name, and renaming it would break two files
 # this step does not own. It is never rendered: every artefact prints the DISPLAY label,
-# which is resolved from variable_dict. See notes_06.md section 5.
+# which is resolved from variable_dict. See the step's notes file, part 5.
 RESIDUAL_SLUG = "not-recorded"
 
 # The postoperative days at which the composition of the conditioning set is published as
@@ -181,7 +181,7 @@ def threshold_slug(threshold: float) -> str:
 # ===========================================================================
 #
 # All timing is on integer postoperative days, so every estimator here is a step
-# function on integers (CLAUDE.md 6.1). Follow-up is fixed and COMPLETE at 30 days:
+# function on integers. Follow-up is fixed and COMPLETE at 30 days:
 # censoring is administrative and non-informative and there is no loss to follow-up,
 # so the only exits from the risk set inside the window are the composite event, the
 # competing death, and reaching day 30 alive and event-free.
@@ -235,7 +235,7 @@ def kaplan_meier_survival(e1: np.ndarray, e2: np.ndarray, n: np.ndarray) -> np.n
     """Kaplan-Meier survival for the composite, treating the competing death as CENSORING.
 
     This is the WRONG estimator for this question and exists only to measure the size of
-    the competing-risk correction (PLAN.md 6.6, supplement S4). One minus this quantity
+    the competing-risk correction (supplement S4). One minus this quantity
     overstates the cumulative incidence of every non-fatal outcome, because it treats a
     death as if the dead patient would have gone on to experience the complication at the
     same rate as the living.
@@ -303,7 +303,7 @@ def first_day_below(curve: np.ndarray, threshold: float) -> np.ndarray:
 
     Returns an integer array; UNREACHED_DAY marks a replicate in which the threshold is
     never crossed inside the 30-day window. It is never clipped to day 30 and never
-    extrapolated past it (CLAUDE.md hard rule 9).
+    extrapolated past it.
     """
     below = curve < threshold
     any_below = below.any(axis=1)
@@ -338,7 +338,7 @@ def counts_by_day(pod_event: np.ndarray, pod_competing: np.ndarray) -> Tuple[np.
 # 2. THE BOOTSTRAP
 # ===========================================================================
 #
-# .build_facts.md section 2 locks the uncertainty rule: the Aalen-Johansen variance
+# The uncertainty rule is locked: the Aalen-Johansen variance
 # where available, otherwise a seeded bootstrap with SEED, 1,000 replicates, PATIENTS
 # RESAMPLED WITHIN STRATUM.
 #
@@ -415,7 +415,7 @@ def residual_level(df: pd.DataFrame, column: str, residual: pd.Series
       which is what MISSING_LABEL is for.
 
     A residual carrying more than one distinct recorded value would be a new stratum and
-    is not created silently: it raises, because CLAUDE.md 6.5 forbids adding a stratum
+    is not created silently: it raises, because adding a stratum is forbidden
     without a stated reason and a mixed residual is a change in the data this step must
     not paper over.
     """
@@ -431,7 +431,7 @@ def residual_level(df: pd.DataFrame, column: str, residual: pd.Series
             f"[06] the residual level of {column} carries {len(recorded)} distinct "
             f"recorded {source} values {recorded} plus "
             f"{int(values.isna().sum())} unrecorded. That is more than one stratum and "
-            f"this step will not create one silently (CLAUDE.md 6.5). Report it.")
+            f"this step will not create one silently. Report it.")
     raw = str(recorded[0])
     return source, raw, VD.pretty_level(source, raw), False
 
@@ -439,7 +439,7 @@ def residual_level(df: pd.DataFrame, column: str, residual: pd.Series
 def build_strata(df: pd.DataFrame) -> List[Tuple[Stratum, np.ndarray]]:
     """The overall row plus the four LOCKED stratifiers, in their locked level order.
 
-    CLAUDE.md 6.5: four stratifiers fixed a priori and NOTHING ELSE without a stated
+    Four stratifiers are fixed a priori and NOTHING ELSE without a stated
     reason. No interaction strata, no data-driven cut points, no additional variable.
     The one addition here is not a new stratifier: it is the residual level of an
     existing one, the patients the declared levels do not cover, carried so that the four
@@ -509,7 +509,7 @@ class Fit:
     day01_events: int = 0
     events_by_day: Optional[np.ndarray] = None
     competing_by_day: Optional[np.ndarray] = None
-    # WHO the conditioning set is made of, by day. See section 4.1 below.
+    # WHO the conditioning set is made of, by day. See part 4.1 of the notes below.
     at_risk_counted: Optional[np.ndarray] = None          # (31,) counted patient by patient
     in_hospital_by_day: Optional[np.ndarray] = None       # (31,) recorded stay not ended
     discharged_by_day: Optional[np.ndarray] = None        # (31,) recorded stay had ended
@@ -530,24 +530,24 @@ class Fit:
 # STILL IN HOSPITAL AT THE START OF DAY D, defined: the patient's postoperative stay had
 # not ended before day D, that is LOS_POSTOP >= D on the frozen column 02 wrote from
 # DOPTODIS. A patient discharged ON day D was in hospital at the start of it, which is the
-# same day-indexing the estimand itself uses and the same tie convention CLAUDE.md 6.3
-# locks (an event on the discharge day counts as pre-discharge).
+# same day-indexing the estimand itself uses and the same tie convention, which is
+# locked (an event on the discharge day counts as pre-discharge).
 #
 # THE 83 PATIENTS WITH NO RECORDED STAY are handled explicitly rather than silently. They
 # cannot be placed on either side, so they are their OWN published count on every day, the
 # primary in-hospital count excludes them, and an upper-bound count that places every one
-# of them in hospital is published beside it. .build_facts.md 7.5 binding item 6 records
+# of them in hospital is published beside it. A data check records
 # that 77 of them also carry STILLINHOSP = 'Yes' and are therefore known to have been in
 # hospital at the 30-day assessment; the remaining 6 are genuinely unplaceable. The bound
 # is what makes the choice auditable instead of a convention buried in a comparison.
 #
 # THE 112 PATIENTS FLAGGED STILL IN HOSPITAL are NOT treated as having no discharge:
-# .build_facts.md 7.5 binding item 6 is explicit that the claim is false for 35 of them,
+# the data check is explicit that the claim is false for 35 of them,
 # who carry a length of stay (24 above 30 days and 11 at or below it). The flag is
 # therefore never used to override a recorded stay. It is used only to say how many of the
 # unplaceable 83 are known to have been inpatients, and all four counts are published.
 #
-# NO LENGTH OF STAY IS TRUNCATED AT DAY 30 (.build_facts.md 7.5): DOPTODIS runs to 112
+# NO LENGTH OF STAY IS TRUNCATED AT DAY 30: DOPTODIS runs to 112
 # days and 74 analytic patients stayed past the end of the window.
 # ---------------------------------------------------------------------------
 
@@ -703,7 +703,7 @@ def num(value: float, decimals: int = 6) -> str:
 def write_csv(path: Path, header: Sequence[str], rows: Sequence[Sequence[object]]) -> None:
     """Write one CSV, asserting every header and every cell is renderable at write time.
 
-    CLAUDE.md hard rules 1 and 2 are enforced HERE, at the write, not by a later grep.
+    The no-em-dash and no-snake_case rules are enforced HERE, at the write, not by a later grep.
     """
     for column in header:
         VD.assert_renderable(column, where=f"{path.name} header")
@@ -723,7 +723,7 @@ def write_csv(path: Path, header: Sequence[str], rows: Sequence[Sequence[object]
 
 
 def clean_fragment(results: Dict[str, object]) -> Dict[str, object]:
-    """Validate and normalise the fragment before it is written (CLAUDE.md 4.2).
+    """Validate and normalise the fragment before it is written.
 
     run_all.py enforces the same contract at merge time and rejects the whole run on the
     first violation. Doing it here too means a violation fails inside the step that caused
@@ -880,7 +880,7 @@ def table5b_rows(fits: Sequence[Fit]) -> List[List[object]]:
                              fit.n, "", "", "", "", "", "Yes"])
                 continue
             # Bare integers and bare decimals throughout: Table 5B is the machine-read
-            # input to Figure 6, not a reviewer-facing table. Table 5 carries the
+            # input to Figure 6, not a reader-facing table. Table 5 carries the
             # human-formatted versions of the same quantities.
             rows.append([
                 s.order, s.stratifier, s.level, day, fit.n, fit.events, fit.n,
@@ -953,7 +953,7 @@ def day_difference(primary: int, sensitivity: int) -> str:
 # ===========================================================================
 
 
-# --- units and scales (.build_facts.md section 9) ---------------------------------
+# --- units and scales ---------------------------------
 # This step publishes every risk as a PERCENTAGE on the 0 to 100 scale, including the
 # keys ending in est, lo and hi. Step 03 publishes the same suffixes as PROPORTIONS on
 # the 0 to 1 scale. The suffixes carry no unit and nothing in the key name resolves the
@@ -965,7 +965,7 @@ def day_difference(primary: int, sensitivity: int) -> str:
 # `<namespace>.scale.units` carry the same content as two parallel lists so
 # verify_numbers.py can assert a unit mechanically rather than parse English. The family
 # entries are KEY PATTERNS addressed to 08, not rendered prose. No key is renamed and
-# none is removed: 04 and the Batch 3 reviewer have both already verified values against
+# none is removed: 04 and an independent verification have both already checked values against
 # the names as they stand.
 
 UNIT_PERCENT = "percentage on the 0 to 100 scale"
@@ -1149,7 +1149,7 @@ if sorted(_DECLARED_NS) != sorted(p.rstrip(".") for p in RESERVED_PREFIXES):
     raise SystemExit(
         f"[06] SCALE_DECLARATIONS covers {sorted(_DECLARED_NS)} but this step reserves "
         f"{sorted(p.rstrip('.') for p in RESERVED_PREFIXES)}. Every reserved namespace "
-        f"declares its own units (.build_facts.md 9.2 item 2).")
+        f"declares its own units.")
 if len(set(_DECLARED_NS)) != len(_DECLARED_NS):
     raise SystemExit(f"[06] SCALE_DECLARATIONS declares a namespace twice: {_DECLARED_NS}")
 
@@ -1193,7 +1193,7 @@ def scale_family_regex_loose(pattern: str) -> "re.Pattern":
 def assert_scale_coverage(results: Dict[str, object]) -> int:
     """Every published key has a declared unit, and never two different ones.
 
-    `.build_facts.md` 9.2 item 4 requires a gate to be able to ask this fragment for the
+    A gate must be able to ask this fragment for the
     unit of ANY key it holds and get ONE answer. `02`, `04` and `05` satisfy that with an
     exactly-one-family rule; this step cannot, because its stratum slugs are themselves
     dotted (`age.18-49`), so a stratum placeholder necessarily spans segments and any
@@ -1241,7 +1241,7 @@ def assert_scale_coverage(results: Dict[str, object]) -> int:
                         f"{sorted(conflicting)[:10]}")
     if problems:
         raise SystemExit("[06] scale-declaration coverage gap "
-                         "(.build_facts.md 9.2 item 4):\n       "
+                         "in the unit declarations:\n       "
                          + "\n       ".join(problems))
     return scale_family_count()
 
@@ -1356,7 +1356,7 @@ def build_fragment(fits: Sequence[Fit], df_n: int, composite_n: int,
             f"({VD.fmt_pct(100.0 * in_hosp_d / at_risk_d, 1)})")
 
     # Renderable prose, in the style 03 uses for its Methods sentences, so 08 quotes a
-    # measured sentence and types no number by hand (CLAUDE.md hard rule 3).
+    # measured sentence and types no number by hand.
     def _day_clause(d: int) -> str:
         at_risk_d = int(overall_fit.at_risk_counted[d])
         in_hosp_d = int(overall_fit.in_hospital_by_day[d])
@@ -1573,18 +1573,18 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
 
     lines: List[str] = []
     A = lines.append
-    A("# notes_06.md -- handoff from `06_window.py` (the safe discharge window)")
+    A("# Notes from `06_window.py` (the safe discharge window)")
     A("")
-    A("Written 2026-07-31. Owner: **T8 (window)**. Owned files: `06_window.py`,")
+    A("Written 2026-07-31. Files of this step: `06_window.py`,")
     A("`outputs/results_06.json`, `derived/notes_06.md`,")
     A("`tables-csv/table5_safe_discharge_day.csv`, `tables-csv/table5b_conditional_risk.csv`,")
     A("`tables-csv/s4_sensitivity_06.csv`. Nothing else was created or modified. The")
     A("warehouse was not read; the only input is the frozen `derived/cohort_analytic.parquet`.")
     A("")
-    A("This step carries the paper's **lead contribution** (`CLAUDE.md` 6a.3): a systematic")
+    A("This step carries the paper's **lead contribution**: a systematic")
     A("literature search found no precedent anywhere for the conditional safe-discharge-day")
-    A("estimand, while two of `PLAN.md`'s other framing claims were refuted. Every number")
-    A("below is re-derived here from the parquet and none is copied from a handoff note.")
+    A("estimand, while two of the original specification's other framing claims were refuted. Every number")
+    A("below is re-derived here from the parquet and none is copied from a notes file.")
     A("")
     A("---")
     A("")
@@ -1603,9 +1603,9 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("```")
     A("")
     A("**Death is a competing event**, so the numerator is the **Aalen-Johansen** cumulative")
-    A("incidence and not one minus Kaplan-Meier (`PLAN.md` 6.1): a patient who died on day 3")
+    A("incidence and not one minus Kaplan-Meier: a patient who died on day 3")
     A("is not at risk of a hematoma reoperation on day 7. The size of that correction is")
-    A("measured in section 6 rather than assumed small.")
+    A("measured in part 6 rather than assumed small.")
     A("")
     A("### 1.1 Why the conditioning set is the START of day D")
     A("")
@@ -1630,7 +1630,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("therefore the conservative one by exactly one day**, which is the whole of the")
     A("disagreement and is stated rather than argued.")
     A("")
-    A("This is a different question from the `CLAUDE.md` 6.3 tie convention, which governs")
+    A("This is a different question from the tie convention, which governs")
     A("whether an event on the discharge day is scored pre-discharge or post-discharge in")
     A("`04_postdischarge.py`. That convention is not used here and no `POSTDISCH_*` column")
     A("is read by this step.")
@@ -1645,7 +1645,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("event-free and alive). `06_window.py` runs the general recursion and **asserts** it")
     A("equals the closed form to 1e-12 on every stratum, and separately asserts that the")
     A("day-0 conditional risk equals the day-30 cumulative incidence. A disagreement stops")
-    A("the step. This is stated because a reviewer will ask why a competing-risks framework")
+    A("the step. This is stated because a reader will ask why a competing-risks framework")
     A("was used on a low-mortality cohort: the answer is that the correctness of the")
     A("estimator should not depend on the answer being close either way, and the supplement")
     A("shows that it is close.")
@@ -1665,9 +1665,9 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("is when `LOS_POSTOP >= D` on the column `02` froze from the direct")
     A("days-from-operation-to-discharge field. A patient discharged **on** day D was in")
     A("hospital at the start of it. That is the same day indexing the estimand itself uses")
-    A("(section 1.1) and the same direction as the `CLAUDE.md` 6.3 tie convention, so the")
+    A("(part 1.1) and the same direction as the tie convention, so the")
     A("composition and the risk are counted on the same clock. **No length of stay is")
-    A("truncated at day 30** (`.build_facts.md` 7.5: the field runs to 112 days and 74")
+    A("truncated at day 30** (the field runs to 112 days and 74")
     A("analytic patients stayed past the end of the window).")
     A("")
     A("| Postoperative day | Event free and alive at the start of it | Of whom still in "
@@ -1692,7 +1692,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("for `08` to quote instead of inventing a sentence.")
     A("")
     A("**How the two awkward populations are handled, explicitly rather than silently**")
-    A("(`.build_facts.md` 7.5 binding items 6 and 8):")
+    A("(each is counted separately below):")
     A("")
     A(f"* **{VD.fmt_count(r['window.riskset.stay_not_recorded_n'])} patients have no")
     A("  recorded postoperative stay** and cannot be placed on either side. They are their")
@@ -1707,7 +1707,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("  are genuinely unplaceable.")
     A(f"* **{VD.fmt_count(r['window.riskset.still_in_hospital_flag_n'])} patients are")
     A("  flagged still in hospital.** The flag is **never** used to override a recorded")
-    A("  stay, because `.build_facts.md` 7.5 binding item 6 is explicit that treating them")
+    A("  stay, because the data check is explicit that treating them")
     A("  all as having no post-discharge period is false: "
       f"{VD.fmt_count(r['window.riskset.flagged_with_recorded_stay_n'])} of them carry a")
     A(f"  recorded length of stay, "
@@ -1780,7 +1780,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A(f"| deaths entering the estimator as the COMPETING (first) event | "
       f"**{VD.fmt_count(r['window.competing.deaths_first.n'])}** |")
     A("")
-    A("All analyses are time-to-first-event. `PLAN.md` and `CLAUDE.md` do not pre-specify")
+    A("All analyses are time-to-first-event. The pre-specification does not specify")
     A("what happens when the composite and the death fall on the **same integer day**, so a")
     A("rule was needed and is stated rather than buried: **the composite takes precedence**.")
     A("That is the conservative direction for a safety claim (it raises the cumulative")
@@ -1836,9 +1836,9 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("")
     A("## 4. Safe discharge day BY STRATUM")
     A("")
-    A("Fixed, pre-specified strata (`CLAUDE.md` 6.5). **No coefficient is estimated, no odds")
-    A("ratio is reported and no discrimination statistic is presented** (`CLAUDE.md` 6.6 and")
-    A("7.1): the multivariable hematoma risk model and the points score belong to the")
+    A("Fixed, pre-specified strata. **No coefficient is estimated, no odds")
+    A("ratio is reported and no discrimination statistic is presented**: the")
+    A("multivariable hematoma risk model and the points score belong to the")
     A("companion paper, which is cited for the derivation of these strata.")
     A("")
     A("Each cell is the safe discharge day with its bootstrap interval, then the residual")
@@ -1861,7 +1861,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("")
     A("---")
     A("")
-    A("## 5. Suppression (`CLAUDE.md` 6.5), reported with its count")
+    A("## 5. Suppression, reported with its count")
     A("")
     A(f"The rule was set before any curve was seen: **a stratum with fewer than "
       f"{VD.MIN_STRATUM_EVENTS} composite events is suppressed rather than plotted, and the "
@@ -1904,7 +1904,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
         A(f"\"{VD.MISSING_LABEL}\", which is what that label is for; a residual carrying "
           f"more")
         A("than one distinct recorded value would be a new stratum and raises rather than")
-        A("being created silently (`CLAUDE.md` 6.5).")
+        A("being created silently.")
         A("")
         for fit in suppressed:
             slug = fit.stratum.slug
@@ -1935,7 +1935,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("")
     A("## 6. The size of the competing-risk correction ON THIS ESTIMAND")
     A("")
-    A("`PLAN.md` 6.6 and supplement S3 require the one-minus-Kaplan-Meier comparison for the")
+    A("Supplement S3 requires the one-minus-Kaplan-Meier comparison for the")
     A("cumulative incidence functions, which `03_timing.py` owns. It is repeated here **on")
     A("the conditional-risk estimand itself**, because the correction does not have to be the")
     A("same size on a ratio functional as it is on the cumulative incidence, and this is the")
@@ -2014,7 +2014,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("## 8. Uncertainty and reproducibility")
     A("")
     A("Every conditional risk carries a 95% confidence interval. The pre-specification")
-    A("(`.build_facts.md` section 2) says the Aalen-Johansen variance where available and a")
+    A("says the Aalen-Johansen variance where available and a")
     A("seeded bootstrap otherwise. **The conditional risk is a ratio of a difference of two")
     A("Aalen-Johansen quantities to a third**, and no closed-form Aalen-Johansen variance")
     A("exists for that functional (the closed form exists for the cumulative incidence")
@@ -2042,7 +2042,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("")
     A("## 9. INTERPRETATION GUARDRAILS. `08` must carry every one of these.")
     A("")
-    A("`PLAN.md` 8 and `CLAUDE.md` 11 require these, and this estimand is the one they bear")
+    A("The pre-specification requires these, and this estimand is the one they bear")
     A("on most.")
     A("")
     A("1. **Confounding by indication, and it is the big one.** The window is derived from")
@@ -2067,7 +2067,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("   discharge practice cannot be separated from patient-level variation.")
     A("8. **THE SAFE DISCHARGE DAY IS NOT AN OBSERVATION PERIOD, AND THE WORDS MATTER.** The")
     A("   day-D conditioning set is the patients event free and alive at the start of day D,")
-    A("   whether or not they were in hospital, and section 1.3 measures how few of them")
+    A("   whether or not they were in hospital, and part 1.3 measures how few of them")
     A(f"   were: {VD.fmt_pct(r['window.riskset.day7.in_hospital_pct'], 1)} on day 7 and "
       f"{VD.fmt_pct(r['window.riskset.day14.in_hospital_pct'], 1)} on day 14. **Phrases")
     A("   such as \"the observation needed\", \"needs 14 days\", \"must be watched for\" and")
@@ -2086,7 +2086,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("**Runge et al. 2026, *Global Spine J* (PMID 42383777)** is the closest published")
     A("answer to this paper's question: median 9 hours to symptom onset, 88% of events within")
     A("24 hours, 12% in-hospital mortality, concluding that a 4-to-8-hour observation period")
-    A("is insufficient. `CLAUDE.md` 6a.4 requires the Discussion to engage it directly.")
+    A("is insufficient. The Discussion must engage it directly.")
     A("")
     A("**It reaches a compatible conclusion from a different design, which is support rather")
     A("than a threat.** Runge is a hematoma-specific series with hourly resolution; this is a")
@@ -2111,8 +2111,8 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("  days are needed to reach a stated absolute residual risk, which is the question a")
     A("  discharge order actually asks.")
     A("")
-    A("**Do not present the two as confirming each other's exact numbers** (`CLAUDE.md` 6a.1")
-    A("makes the same ruling for the `INOUT` figures). Report ours with its denominator and")
+    A("**Do not present the two as confirming each other's exact numbers** (the same applies")
+    A("to the `INOUT` figures). Report ours with its denominator and")
     A("cite theirs beside it.")
     A("")
     A("---")
@@ -2125,7 +2125,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("   start of the day, a stable `Display order`, and a `Suppressed` column. The threshold")
     A("   lines come from `variable_dict.RISK_THRESHOLDS`, drawn with `threshold_label()`.")
     A("2. **Plot STEP curves.** Every quantity is a step function on integer days")
-    A("   (`CLAUDE.md` 6.1). Do not smooth, do not interpolate, do not draw sub-day")
+    A("   Do not smooth, do not interpolate, do not draw sub-day")
     A("   resolution the data does not have, and **do not extend any line past day 30**.")
     A("3. **The suppressed stratum must be visible as suppressed**, not silently absent. Its")
     A("   rows are present with empty estimates and `Suppressed` = Yes.")
@@ -2144,7 +2144,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("   **proportions** on the 0 to 1 scale, and nothing in a key name distinguishes the")
     A("   two: applying `03`'s rule here would render the headline as 0.090% or as 90.1%.")
     A("   Read `window.scale` and `condrisk.scale`, never another step's declaration")
-    A("   (`.build_facts.md` section 9). Note in particular that `risk_lo` and `risk_hi`")
+    A("   Note in particular that `risk_lo` and `risk_hi`")
     A("   are percentages whose sibling is spelled `risk_pct`; the suffix is inconsistent")
     A("   and the unit is not. `window.thresholds` is the one exception in this step and")
     A("   is held as proportions, with `window.threshold_labels` beside it for rendering.")
@@ -2156,14 +2156,14 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
       f"{r['window.sensitivity.stratum_threshold_cells']} stratum-and-threshold cells are")
     A("   unreached, so no `.day` key is `null` today. **The branch is still live and must be")
     A("   handled**: a future vintage, a rarer stratum or a fourth threshold would use it.")
-    A("8. **Say the guardrails in section 9 out loud**, above all confounding by indication.")
+    A("8. **Say the guardrails in part 9 out loud**, above all confounding by indication.")
     A("   A window recommendation read as causal is the single most likely way this result")
     A("   gets misused.")
     A("9. **The Methods must state** the estimand, the competing-risks estimator and why, the")
     A("   start-of-day conditioning, the same-day composite-versus-death tie rule, the")
     A("   suppression rule with its count, and the bootstrap with its seed, replicate count")
     A("   and resampling unit. All eight are fragment keys; none needs typing.")
-    A("10. **QUOTE THE FOUR CONDITIONING-SET SENTENCES; DO NOT PARAPHRASE THEM.** Section 1.3")
+    A("10. **QUOTE THE FOUR CONDITIONING-SET SENTENCES; DO NOT PARAPHRASE THEM.** Part 1.3")
     A("    measures who the conditional risk is actually estimated on, and the four keys")
     A("    below are written to be rendered verbatim so `08` types no number by hand:")
     A("    `window.riskset.text.methods` (the estimand is a survival condition, not an")
@@ -2180,7 +2180,7 @@ def write_notes(fits: Sequence[Fit], r: Dict[str, object], boundary: Dict[str, o
     A("    the missing label.** Read `suppress.<stratum>.level_label` and")
     A("    `suppress.<stratum>.level_recorded` rather than assuming a suppressed residual")
     A("    level is unrecorded, and note that its FRAGMENT KEY segment is frozen at")
-    A(f"    `{RESIDUAL_SLUG}` for the reason section 5.1 gives. Table 5, Table 5B, S4D and")
+    A(f"    `{RESIDUAL_SLUG}` for the reason part 5.1 gives. Table 5, Table 5B, S4D and")
     A("    Figure 6 all render the label, never the slug.")
     A("")
     A("---")
@@ -2392,7 +2392,7 @@ def main(argv=None) -> int:
     if missing:
         raise SystemExit(f"[06] columns missing from the analytic parquet: {missing}. "
                          f"That is a bug in 02_build_cohort.py, not a licence to compute "
-                         f"them locally (CLAUDE.md 4.1).")
+                         f"them locally.")
 
     # --- the composite and the competing event, re-derived -------------------
     is_event = (df["WINDOW_COMP"] == 1).to_numpy()
@@ -2405,7 +2405,7 @@ def main(argv=None) -> int:
     if not pod_complete:
         raise SystemExit("[06] a WINDOW_COMP event carries no POD_WINDOW. 02 recorded "
                          "POD_WINDOW observed on all of them; report the mismatch, do not "
-                         "impute (CLAUDE.md 8.5).")
+                         "impute.")
     if np.any(np.isfinite(pod_event[~is_event])):
         raise SystemExit("[06] POD_WINDOW is populated on a row whose composite flag is "
                          "negative")
@@ -2426,7 +2426,7 @@ def main(argv=None) -> int:
     both_n = int(both.sum())
     death_strictly_first = int(np.sum(both & (pod_death < pod_event)))
     tie_same_day = int(np.sum(both & (pod_death == pod_event)))
-    # Time to FIRST event, with the composite taking a same-day tie (see notes section 2.1).
+    # Time to FIRST event, with the composite taking a same-day tie (see part 2.1 of the notes).
     is_competing = is_death & ~(is_event & (pod_event <= pod_death))
     competing_first = int(is_competing.sum())
     if death_strictly_first:
@@ -2453,14 +2453,14 @@ def main(argv=None) -> int:
 
     # --- who is still in hospital, and the two populations that need naming ---
     # LOS_POSTOP and STILLINHOSP exactly as 02 froze them. Nothing is recomputed from the
-    # warehouse, nothing is truncated at day 30 (.build_facts.md 7.5: DOPTODIS runs to 112
+    # warehouse, nothing is truncated at day 30 (DOPTODIS runs to 112
     # days and 74 analytic patients stayed past the window), and the flag never overrides
-    # a recorded stay (binding item 6: the claim would be false for 35 of the 112).
+    # a recorded stay (the claim would be false for 35 of the 112).
     for column in ("LOS_POSTOP", "STILLINHOSP"):
         if column not in df.columns:
             raise SystemExit(f"[06] {column} is missing from the analytic parquet. That "
                              f"is a bug in 02_build_cohort.py, not a licence to compute "
-                             f"it locally (CLAUDE.md 4.1).")
+                             f"it locally.")
     los = df["LOS_POSTOP"].to_numpy(dtype=float, na_value=np.nan)
     stillinhosp = (df["STILLINHOSP"].astype("string") == "Yes").fillna(False).to_numpy()
     los_recorded = np.isfinite(los)
@@ -2473,7 +2473,7 @@ def main(argv=None) -> int:
         "flagged_with_recorded_stay": int((stillinhosp & los_recorded).sum()),
         # Of the flagged patients who DO carry a stay, how many of those stays end inside
         # the window and how many past it. Measured rather than carried over from
-        # .build_facts.md 7.5, so the sentence cannot go stale on a new vintage.
+        # earlier notes, so the sentence cannot go stale on a new vintage.
         "flagged_stay_inside_window": int(
             (stillinhosp & los_recorded & (los <= VD.FOLLOWUP_DAYS)).sum()),
         "flagged_stay_beyond_window": int(
@@ -2544,9 +2544,9 @@ def main(argv=None) -> int:
                              tie_same_day, death_strictly_first, stay_counts)
     fragment = clean_fragment(results)
     # Every key this step publishes resolves to exactly one UNIT, asserted here rather
-    # than in a downstream reader that cannot know what a new key means
-    # (.build_facts.md 9.2 item 4). `02`, `04` and `05` have carried this since the
-    # section 9.6 fix pass; this step did not.
+    # than in a downstream reader that cannot know what a new key means.
+    # `02`, `04` and `05` have carried this since an
+    # earlier fix pass; this step did not.
     n_families = assert_scale_coverage(fragment)
     print(f"[06]   scale declarations: {len(SCALE_DECLARATIONS)} namespaces, "
           f"{n_families} key families, every published key covered")

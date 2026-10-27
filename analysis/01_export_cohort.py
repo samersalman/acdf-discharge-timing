@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """01_export_cohort.py -- pull the identified ACDF cohort out of the NSQIP warehouse.
 
-This is the ACDF DISCHARGE-TIMING project (a spin-out of `projects/ACDF-hematoma/`). The
+This is the ACDF DISCHARGE-TIMING project (a spin-out of the companion ACDF hematoma project). The
 cohort is IDENTICAL to the parent's by design: the two manuscripts report the same ladder,
-and a discrepancy between them would be visible to any reviewer holding both papers. So
+and a discrepancy between them would be visible to any reader holding both papers. So
 this file is the parent's exporter, ported, with the export contract widened by exactly one
 column.
 
@@ -13,9 +13,9 @@ One bundle comes out of this step:
                                       puf_year 2012-2024.
                                       EXPECTED_N = 124,344 rows x 143 columns.
 
-  (The three principal codes are deliberately NOT written out above. CLAUDE.md hard rule 5
-  makes `cpt_acdf.py` the only place in this project where a CPT or ICD code may appear as
-  a literal, and it names description strings explicitly, so the docstring names the
+  (The three principal codes are deliberately NOT written out above. By design
+  `cpt_acdf.py` is the only place in this project where a CPT or ICD code may appear as
+  a literal, description strings included, so the docstring names the
   constant instead.)
 
 THE 143-COLUMN CONTRACT, AND WHY IT IS 143 AND NOT THE PARENT'S 142
@@ -28,12 +28,11 @@ WHY `INOUT` IS HERE AT ALL, GIVEN THE PARENT BANS IT
   `INOUT` is the NSQIP inpatient/outpatient BILLING label. It records how a case was booked,
   not how long the patient stayed, and it disagrees with true postoperative length of stay in
   the large majority of cases it labels 'Outpatient'. The parent project bans it outright
-  (framing rule 3 of `projects/ACDF-hematoma/v1/CLAUDE.md`: true postoperative length of stay
-  only, never the `INOUT` billing label) and hard-bans it in that project's preflight, so it
-  cannot leak into that manuscript. That ban remains in force there and this file does not
-  touch it.
+  (true postoperative length of stay only, never the `INOUT` billing label) and hard-bans it
+  in that project's preflight, so it cannot leak into that manuscript. That ban remains in
+  force there and this file does not touch it.
 
-  THIS project's second headline finding IS that disagreement (`PLAN.md` section 6.4): the
+  THIS project's second headline finding IS that disagreement: the
   2x2 of `INOUT` against true postoperative length of stay, its sensitivity / specificity /
   PPV / NPV / kappa, the year-by-year disagreement rate, and a published
   outpatient-versus-inpatient complication comparison re-estimated under both exposure
@@ -45,7 +44,7 @@ WHY `INOUT` IS HERE AT ALL, GIVEN THE PARENT BANS IT
 Strategy (idempotent; `python3 01_export_cohort.py`):
 
   1. Import the principal CPT set from `cpt_acdf.PRINCIPAL_CPTS` -- the single source of
-     truth (CLAUDE.md hard rule 5). No CPT code is retyped in this file.
+     truth. No CPT code is retyped in this file.
   2. Invoke the warehouse exporter `nsqip-db/export.py` as a READ-ONLY SUBPROCESS, run
      with cwd = the warehouse directory so its relative paths resolve. It is never
      imported, and nothing this project owns writes into `nsqip-db/`. The exporter writes
@@ -63,27 +62,27 @@ Strategy (idempotent; `python3 01_export_cohort.py`):
      'Outpatient'.
 
 NO `--where` PREDICATE IS PASSED AT ALL.
-  The plan's "identified" rung is `principal CPT in the set AND AGE >= 18`. Measured
+  The original specification's "identified" rung is `principal CPT in the set AND AGE >= 18`. Measured
   read-only against the curated `main` view on 2026-07-30: the CPT-and-year pull already
   returns exactly 124,344 rows, with `AGE` SMALLINT, 0 NULL, min 18, max 90. There is not
-  one ACDF case under 18 in 13 years, so the age criterion is non-binding and needs no SQL.
-  This keeps the export a pure, unfiltered identified pull (CLAUDE.md hard rule 6: any
+  one ACDF case under 18 in 13 years, so the age criterion is redundant and needs no SQL.
+  This keeps the export a pure, unfiltered identified pull (any
   `--where` would have to be NULL-safe, and the safest NULL-safe predicate is none). The
   elective restriction, the procedure exclusions, the ASA / sepsis exclusions and every
   recode belong to `02_build_cohort.py`, so the STROBE flow keeps every rung.
 
 WHY THE ROW-COUNT CHECK IS EXACT AND NOT A TOLERANCE
   124,344 is warehouse-verified ground truth pinned in `cpt_acdf.COHORT_LADDER_N`
-  (CLAUDE.md 8.2, Gate B). A mismatch means the CPT filter, the year filter or the
+  (Gate B). A mismatch means the CPT filter, the year filter or the
   warehouse itself changed, and every downstream number is suspect -- so it raises
-  SystemExit rather than printing a warning. CLAUDE.md 8.5: a mismatch is a stop
-  condition, not a number to overwrite. This is also Gate 1 (CLAUDE.md 8.3): adding a
+  SystemExit rather than printing a warning. A mismatch is a stop
+  condition, not a number to overwrite. This is also Gate 1: adding a
   column must not move a single row count, and this file is where that is first testable.
 
 NO RECODING HAPPENS HERE. The warehouse emits human-readable strings and SQL NULLs.
 Note in particular that `PRSEPIS` stores the literal string 'None' for "no preoperative
 sepsis"; `02_build_cohort.py` must read this CSV with `keep_default_na=False` or the
-sepsis filter inverts (CLAUDE.md 9.8).
+sepsis filter inverts.
 
 Usage
 -----
@@ -117,7 +116,7 @@ PROJECT_EXPORTS_DIR = PROJECT_DIR / "exports"
 sys.path.insert(0, str(PROJECT_DIR))
 import cpt_acdf  # noqa: E402  (the CPT taxonomy; single source of truth)
 
-# --- export contract (verified in .build_facts.md sections 3 and 4) --------
+# --- export contract (verified against the warehouse) --------
 SLUG = "acdf-discharge-timing"
 FAMILY = "main"
 YEARS = "2012-2024"
@@ -129,13 +128,13 @@ AUTO_INJECTED_COLS = [                # export.py:38, config.IDENTITY_COLS + cas
 ]
 EXPECTED_COLS = N_REQUESTED_COLS + len(AUTO_INJECTED_COLS)          # 143
 
-# Gate B, pinned in cpt_acdf. Never retyped here (CLAUDE.md 8.2).
+# Gate B, pinned in cpt_acdf. Never retyped here.
 EXPECTED_N = cpt_acdf.COHORT_LADDER_N["identified"]                  # 124,344
 
-MIN_AGE = 18                          # the plan's inclusion criterion, asserted not applied
+MIN_AGE = 18                          # the specified inclusion criterion, asserted not applied
 
-# --- the INOUT contract (CLAUDE.md 4.4, .build_facts.md sections 3 and 4) --
-# The billing-label column this project's section 6.4 critique is built on. Measured
+# --- the INOUT contract --
+# The billing-label column this project's measurement critique is built on. Measured
 # read-only on the curated `main` view for puf_year 2012-2024 on 2026-07-31: VARCHAR,
 # present in all 13 years, exactly two non-null levels plus one SQL NULL database-wide
 # (Inpatient 6,457,523 / Outpatient 5,357,395 / NULL 1, the NULL in 2013).
@@ -188,13 +187,13 @@ def _preflight() -> list:
     if leaked:
         raise SystemExit(
             f"[01] {VAR_FILE.name} lists auto-injected column(s) {leaked}. "
-            f"export.py injects these; listing them is an ERROR (.build_facts.md 4)."
+            f"export.py injects these; listing them is an ERROR."
         )
     # NOTE THE MISSING ENTRY. The parent's ban list is {INOUT, FNSTATUS1, PRPT, HDISDT};
     # this one is {FNSTATUS1, PRPT, HDISDT}. The INOUT ban is LIFTED FOR THIS PROJECT ONLY,
-    # because the `INOUT` versus true length-of-stay measurement critique (PLAN.md 6.4) is
+    # because the `INOUT` versus true length-of-stay measurement critique is
     # one of this paper's two headline findings and is not computable without the column.
-    # The ban REMAINS IN FORCE in `projects/ACDF-hematoma/`, whose framing rule 3 keeps the
+    # The ban REMAINS IN FORCE in the companion hematoma project, which keeps the
     # billing label out of that manuscript entirely; do not carry this relaxation back.
     # The other three stay banned for the same reasons as in the parent: FNSTATUS1 is 100%
     # NULL database-wide in the only three years it exists, PRPT is 99% NULL in this cohort,
@@ -208,27 +207,27 @@ def _preflight() -> list:
     # The POSITIVE assertion, and the reason it exists: the parent bans this column, so the
     # single most likely bad edit to this file is someone re-syncing it against the parent's
     # list and quietly deleting INOUT. That would not fail any count check by itself if the
-    # width constant were "fixed" alongside it, and the section 6.4 analysis would simply
+    # width constant were "fixed" alongside it, and the billing-label analysis would simply
     # vanish. Assert it is present, by name.
     if INOUT_COL not in codes:
         raise SystemExit(
             f"[01] {VAR_FILE.name} does NOT list {INOUT_COL}. This project REQUIRES it: "
             f"the {INOUT_COL} versus true postoperative length-of-stay measurement "
-            f"critique (PLAN.md section 6.4) is one of this paper's two headline findings "
+            f"critique is one of this paper's two headline findings "
             f"and 05_inout.py cannot run without the column. It is banned in "
-            f"projects/ACDF-hematoma/ and exported here on purpose. Re-add it to the "
+            f"the companion hematoma project and exported here on purpose. Re-add it to the "
             f"'Outcome: mortality, length of stay, disposition' block."
         )
     print(f"[01]   var-file OK: {VAR_FILE}")
     print(f"[01]     {len(codes)} requested + {len(AUTO_INJECTED_COLS)} auto-injected "
           f"= {EXPECTED_COLS} expected columns")
-    print(f"[01]     {INOUT_COL} present in the variable list (required by PLAN.md 6.4; "
+    print(f"[01]     {INOUT_COL} present in the variable list (required by the billing-label analysis; "
           f"banned in the parent project)")
     return codes
 
 
 def _principal_cpts() -> list:
-    """The --cpt arguments, built from the taxonomy. Never hard-coded (hard rule 5)."""
+    """The --cpt arguments, built from the taxonomy. Never hard-coded."""
     codes = sorted(cpt_acdf.PRINCIPAL_CPTS)
     if len(codes) != 3:
         raise SystemExit(
@@ -274,7 +273,7 @@ def _run_warehouse_export(cpts: list, dry_run: bool = False) -> None:
     # export.py logs to stdout and WARNS to stderr even on success. Partial-year-coverage
     # warnings are EXPECTED here: EMERGNCY/ELECTSURG stop at 2020, CASETYPE starts at
     # 2021, the ICD-9 fields stop at 2020 and the ICD-10 fields start at 2014. Those are
-    # the documented era boundaries (.build_facts.md 3, CLAUDE.md 9.10), not errors.
+    # the documented era boundaries, not errors.
     warn_lines = [ln for ln in (result.stderr or "").rstrip().splitlines() if ln.strip()]
     partial = [ln for ln in warn_lines if "partial year coverage" in ln]
     other = [ln for ln in warn_lines if "partial year coverage" not in ln]
@@ -397,7 +396,7 @@ def _verify_inout(header: list, by_inout: Counter, n_rows: int) -> None:
     if INOUT_COL not in header:
         raise SystemExit(
             f"[01] cohort.csv has no {INOUT_COL} column. It is listed in "
-            f"{VAR_FILE.name} and is REQUIRED by this project (PLAN.md section 6.4). "
+            f"{VAR_FILE.name} and is REQUIRED by this project. "
             f"If the exporter reported it absent from view 'main', stop and investigate."
         )
 
@@ -422,10 +421,10 @@ def _verify_inout(header: list, by_inout: Counter, n_rows: int) -> None:
     if unexpected:
         raise SystemExit(
             f"[01] {INOUT_COL} carries unexpected level(s) {unexpected}. Only "
-            f"{list(INOUT_LEVELS)} are known (.build_facts.md section 3, measured "
+            f"{list(INOUT_LEVELS)} are known (measured "
             f"read-only on the curated `main` view for 2012-2024).\n"
             f"     This is a STOP CONDITION: an unmapped level would silently corrupt the "
-            f"2x2 in PLAN.md section 6.4 and every statistic derived from it (sensitivity, "
+            f"2x2 in the billing-label analysis and every statistic derived from it (sensitivity, "
             f"specificity, PPV, NPV, kappa) without raising anywhere downstream.\n"
             f"     Do not map the new level by guesswork. Establish what it means against "
             f"the PUF guides first, then extend INOUT_LEVELS here and the explicit map in "
@@ -459,9 +458,9 @@ def _verify_bundle(cpts: list, bundle_dir: pathlib.Path) -> dict:
             f"[01] N = {csv_n:,} but cpt_acdf.COHORT_LADDER_N['identified'] = "
             f"{EXPECTED_N:,} (delta {csv_n - EXPECTED_N:+,}).\n"
             f"     This is warehouse-verified ground truth, NOT an approximation, and it\n"
-            f"     is Gate 1 (CLAUDE.md 8.3): adding INOUT to the variable list must not\n"
+            f"     is Gate 1: adding INOUT to the variable list must not\n"
             f"     move a single row count.\n"
-            f"     CLAUDE.md 8.5: a mismatch is a STOP CONDITION, not a number to\n"
+            f"     A mismatch is a STOP CONDITION, not a number to\n"
             f"     overwrite. Investigate with:\n"
             f"       {' '.join(_export_cmd(cpts, dry_run=True))}"
         )
@@ -513,7 +512,7 @@ def _verify_bundle(cpts: list, bundle_dir: pathlib.Path) -> dict:
     if stray:
         raise SystemExit(f"[01] rows with unrequested principal CPT {stray}")
 
-    # --- the age criterion is non-binding, and we PROVE it rather than assume -
+    # --- the age criterion is redundant, and we PROVE it rather than assume -
     if age_missing or age_bad:
         raise SystemExit(
             f"[01] AGE is not clean: {age_missing:,} missing, {age_bad:,} below "
@@ -631,7 +630,7 @@ def main(argv=None) -> int:
     print(f"[01]   {INOUT_COL}: " + "  ".join(
         f"{lv}={res['by_inout'].get(lv, 0):,}" for lv in INOUT_LEVELS))
     print(f"[01]   next: python3 02_build_cohort.py   "
-          f"(read the CSV with keep_default_na=False -- CLAUDE.md 9.8)")
+          f"(read the CSV with keep_default_na=False)")
     print(f"[01] DONE. Row count exact, column count {EXPECTED_COLS}.")
     print("=" * 78)
     return 0

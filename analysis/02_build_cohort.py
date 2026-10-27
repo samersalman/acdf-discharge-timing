@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """02_build_cohort.py -- recode the export bundle and freeze the analytic cohort.
 
-PORTED from `projects/ACDF-hematoma/v1/02_build_cohort.py` and EXTENDED for the
-discharge-timing project (PLAN.md 11.1). The cohort ladder logic is UNTOUCHED; everything
+PORTED from the companion hematoma project's `02_build_cohort.py` and EXTENDED for the
+discharge-timing project. The cohort ladder logic is UNTOUCHED; everything
 added here is a new derived column or a new measurement.
 
 This step is the correctness gate of the whole project. Everything downstream reads what
-it writes and NEVER re-derives a cohort (CLAUDE.md 4.1).
+it writes and NEVER re-derives a cohort.
 
 Inputs
 ------
@@ -19,10 +19,10 @@ Outputs (default mode only)
     derived/cohort_analytic.parquet      the analytic cohort, n = 112,642
     derived/cohort_identified.parquet    pre-exclusion, n = 124,344, for Figure 1
     derived/cohort_schema.md             every derived column, dtype, origin and definition
-    derived/notes_02.md                  handoff for 03 / 04 / 05 / 06
-    outputs/results_02.json              flat dotted keys (CLAUDE.md 4.2)
+    derived/notes_02.md                  notes for 03 / 04 / 05 / 06
+    outputs/results_02.json              flat dotted keys
 
-Three gates, all of which must pass (CLAUDE.md 8.2, 8.3)
+Three gates, all of which must pass
 -------------------------------------------------------
     Gate B   default mode, PRIMARY.  124,344 -> 121,210 -> 113,469 -> 112,642
     Gate A   --replicate-plan, RECONCILIATION.  124,266 -> 121,142 -> 113,411 -> 112,585
@@ -30,8 +30,8 @@ Three gates, all of which must pass (CLAUDE.md 8.2, 8.3)
 
 The event ladder is 642 -> 613 -> 548 -> 541 on BOTH ladders under the CURRENT primary
 outcome definition (`cpt_acdf.HEMATOMA_DEFINITION`, V2): the 78 restored nonagenarians
-carry zero hematoma events. PLAN.md prints the superseded V0 ladder 640 / 611 / 544 / 537
-for the reason CLAUDE.md section 0 and .build_facts.md section 1 document. Every count is
+carry zero hematoma events. The original specification printed the superseded V0 ladder
+640 / 611 / 544 / 537 (see note 5a in cpt_acdf). Every count is
 asserted against cpt_acdf.COHORT_LADDER_N / COHORT_LADDER_N_PLAN / COHORT_LADDER_EVENTS;
 none is retyped here, so importing lands on the current definition automatically.
 
@@ -42,19 +42,19 @@ frozen artifacts can never be clobbered by the reconciliation mode.
 
 What this port DELIBERATELY DROPS from the parent, and why
 ---------------------------------------------------------
-  * The parent's GATE D block (its own plan's three subgroup denominators and the
+  * The parent's GATE D block (its own specification's three subgroup denominators and the
     BMI-window identifiability sweep) and its `burden_variant` block. Both target figures
-    printed in the PARENT's governing plan, which this project never quotes, and the burden
-    block publishes coagulopathy-burden rates that CLAUDE.md 7.1 forbids this manuscript in
+    printed in the PARENT's governing specification, which this project never quotes, and the burden
+    block publishes coagulopathy-burden rates that this manuscript excludes in
     every form. The BMI plausibility window itself is UNCHANGED, so `BMI`, `BMI_PER5` and
     `MODEL_COMPLETE` stay byte-identical to the parent's and the two cohorts cannot fork.
   * The parent's `cascade_mort.*` block (hematoma versus no-hematoma mortality) and its
-    dysphagia counts: both are the parent's results, forbidden here by CLAUDE.md 7.1. The
+    dysphagia counts: both are the parent's results, excluded here. The
     COLUMNS are still built, because dropping them would fork the two cohorts.
   * The parent's seroma-guard reconstruction, which re-implements cpt_acdf internals that
     that module's own self-test already covers.
 
-The traps this file is written around (each fails SILENTLY; CLAUDE.md section 9)
+The traps this file is written around (each fails SILENTLY)
 ------------------------------------------------------------------------------
   * `PRSEPIS` stores the literal string 'None' for "no sepsis". The bundle is read with
     `keep_default_na=False` or the sepsis filter inverts.
@@ -64,12 +64,12 @@ The traps this file is written around (each fails SILENTLY; CLAUDE.md section 9)
     naive SQL form collapses the cohort to 485.
   * The hematoma union is the UNGATED union of all four ICD columns, slot 1 only. A
     year-gated rule loses a real 2016 event ascertained by the ICD-9 arm alone.
-  * There is no `DEATH` column. 30-day mortality is DOPERTOD-based (CLAUDE.md 9.4);
+  * There is no `DEATH` column. 30-day mortality is DOPERTOD-based;
     YRDEATH is NOT window-bounded and goes into a separate sensitivity column.
   * REINTUB / FAILWEAN / OUPNEUMO are `!= 'No Complication'`, never `== 'Yes'`.
   * `DISCHDEST` swaps vocabulary completely at 2021 and needs an explicit level map
     covering both; `Facility Which was Home` is NOT counted as home. The map lives in
-    `variable_dict.py` here (T2 owns it) and an unmapped level RAISES.
+    `variable_dict.py` here and an unmapped level RAISES.
   * Postoperative LOS is `DOPTODIS`, NEVER `INOUT`. `INOUT` is exported in this project
     because the measurement critique needs it, and confusing the two is the error this
     paper documents.
@@ -100,7 +100,7 @@ sys.path.insert(0, str(PROJECT_DIR))
 import cpt_acdf as CPT           # noqa: E402  taxonomy: the only place a code is a literal
 import variable_dict as VD       # noqa: E402  labels, SEED, contract constants
 
-np.random.seed(VD.SEED)          # CLAUDE.md hard rule 4 (nothing here draws, but seed anyway)
+np.random.seed(VD.SEED)          # nothing here draws, but seed anyway
 
 EXPORT_CSV = PROJECT_DIR / "exports" / "acdf-discharge-timing" / "cohort.csv"
 DERIVED_DIR = PROJECT_DIR / "derived"
@@ -112,9 +112,9 @@ NOTES_MD = DERIVED_DIR / "notes_02.md"
 RESULTS_JSON = OUTPUTS_DIR / "results_02.json"
 
 # The parent's bundle is 142 columns. This project's variable list is the parent's plus
-# exactly `INOUT` (.build_facts.md section 4), so the bundle is 143. T1 proved at the export
+# exactly `INOUT`, so the bundle is 143. It was proved at the export
 # layer that deleting `INOUT` from every row of this bundle reproduces the parent's bundle
-# byte for byte with an identical SHA-256 (notes_cpt.md 6.3). Gate 1 here is the ladder
+# byte for byte with an identical SHA-256. Gate 1 here is the ladder
 # landing on the pinned constants PLUS a structural proof that nothing on the ladder path
 # reads the added column, taken by rebuilding both ladders from the raw CSV with the column
 # deleted before any derivation runs (see `gate_one`).
@@ -126,12 +126,12 @@ MIN_AGE = 18
 # NSQIP top-codes age at 90: the raw PUF token is the literal '90+' and the curated view
 # ships it as SMALLINT 90. Verified read-only 2026-07-30 on the identified cohort:
 # AGE = 90 in exactly 78 rows and the raw token '90' (without the plus) does not occur, so
-# AGE == 90 in the bundle is EXACTLY the set the plan's TRY_CAST(AGE AS INT) nulls.
+# AGE == 90 in the bundle is EXACTLY the set the original specification's TRY_CAST(AGE AS INT) nulls.
 TOPCODED_AGE = 90
 
 # ---------------------------------------------------------------------------
 # Decisions this file had to MAKE rather than inherit. Each is stated here once,
-# repeated in cohort_schema.md, and reported in derived/notes_02.md.
+# repeated in cohort_schema.md, and reported in the step's notes file.
 # ---------------------------------------------------------------------------
 # BMI plausibility window, kg/m^2, inclusive. Values outside are set to NaN. It is a
 # CHOSEN clinical-plausibility rule, never a discovered one: the handful of cases below 12
@@ -141,14 +141,14 @@ TOPCODED_AGE = 90
 # PORTED UNCHANGED AND IT MUST STAY UNCHANGED. It is what makes `BMI`, `BMI_PER5` and
 # `MODEL_COMPLETE` identical in the two projects; moving a bound here forks the two
 # cohorts. The parent's Gate D block, which measured how far this window is identifiable
-# from figures printed in the PARENT's plan, is not ported: those figures belong to the
+# from figures printed in the PARENT's specification, is not ported: those figures belong to the
 # parent manuscript and this project never quotes them.
 BMI_MIN, BMI_MAX = 12.0, 70.0
 
 # Fusion-level cap for the companion per-level term. LEVELS_N is uncapped and its right tail
 # runs past 3; the categorical stratifier is 1 / 2 / >= 3. BOTH terms are materialized so the
 # two cohorts carry the same columns. THIS PROJECT FITS NEITHER: it fits no hematoma risk
-# model at all (CLAUDE.md 6.6).
+# model at all.
 LEVELS_CAP = 3
 
 # Preoperative anemia, WHO hematocrit thresholds. Sex-specific, so it is undefined where the
@@ -156,7 +156,7 @@ LEVELS_CAP = 3
 ANEMIA_HCT_MALE, ANEMIA_HCT_FEMALE = 39.0, 36.0
 
 # Coagulopathy-burden component thresholds. PORTED; the columns exist so the two cohorts
-# cannot fork, and NOTHING in this project ever analyses them (CLAUDE.md 7.1).
+# cannot fork, and NOTHING in this project ever analyses them.
 INR_THRESHOLD, PLT_THRESHOLD, PTT_THRESHOLD = 1.2, 150.0, 35.0
 
 ASA_KEEP = ("1-No Disturb", "2-Mild Disturb", "3-Severe Disturb", "4-Life Threat")
@@ -165,11 +165,11 @@ ASA_UNASSIGNED = "None assigned"
 NO_SEPSIS = "None"
 NO_COMPLICATION = "No Complication"
 
-# `DISCHDEST` swaps vocabulary completely at 2021 (CLAUDE.md 9.5). The parent carried its
-# own `DISCHDEST_MAP` literal here; in this project the level map is owned by T2 and lives
+# `DISCHDEST` swaps vocabulary completely at 2021. The parent carried its
+# own `DISCHDEST_MAP` literal here; in this project the level map lives
 # in `variable_dict.py` as `DISCHDEST_LEVEL_MAP`, verified programmatically identical to the
-# parent's INCLUDING KEY ORDER (notes_variable_dict.md section 3). This file must NOT carry
-# a second copy (notes_variable_dict.md 7.3). Behaviour is preserved exactly:
+# parent's INCLUDING KEY ORDER. This file must NOT carry
+# a second copy. Behaviour is preserved exactly:
 # `dischdest_category` returns `DEST_CAT_MISSING` (the empty string) for a blank, which is
 # what the parent's `.fillna("")` produced, and RAISES on any unmapped non-blank level.
 # `Facility Which was Home` is a FACILITY: the ACS level means the patient went to a
@@ -177,7 +177,7 @@ NO_COMPLICATION = "No Complication"
 # community, and substring-matching "Home" would silently fold it into the home group.
 
 # ---------------------------------------------------------------------------
-# THE TIMING-FIELD HANDLING RULE (CLAUDE.md 8.6, PLAN.md 6.1). Applied ONCE, here.
+# THE TIMING-FIELD HANDLING RULE. Applied ONCE, here.
 #
 # Every days-to-event field in NSQIP is an integer count of postoperative days on a fixed
 # 30-day follow-up window. A value is USABLE if and only if it is an integer in
@@ -187,7 +187,7 @@ NO_COMPLICATION = "No Complication"
 #
 # It is never clipped to a boundary and never silently dropped. The affected patient stays
 # in the cohort and stays an event; only that patient's TIMING is treated as unobserved, so
-# the case appears in row 1 of the PLAN.md 6.2 denominator ladder and drops out at row 2.
+# the case appears in row 1 of the denominator ladder and drops out at row 2.
 # Every downstream step inherits the rule through the frozen `POD_*` columns and NO step
 # clips or drops locally.
 #
@@ -240,15 +240,15 @@ NEGFLAG_EXPECTED = {
 REOP_SLOT2_CPT_COLUMN = "REOPOR2CPT1"
 REOP_SLOT2_PODAYS_COLUMN = "RETOR2PODAYS"
 
-# Figures the constitution recorded, held here so a change shows up as a REPORTED mismatch
-# rather than a silent adjustment (CLAUDE.md 8.5). The rung difference itself is computed
-# from cpt_acdf and never retyped.
-CONSTITUTION_EXCLUSION_BOX_SUM = 828        # CLAUDE.md 9.16
-CONSTITUTION_LOS_DISAGREEMENTS = 204        # CLAUDE.md 8.7, measured by the parent
-CONSTITUTION_LOS_BOTH_PRESENT = 112523      # CLAUDE.md 8.7
+# Figures recorded in earlier work, held here so a change shows up as a REPORTED mismatch
+# rather than a silent adjustment. The rung difference itself is computed
+# from cpt_acdf and never retyped. (The CONSTITUTION_ prefix is a historical name for
+# these carried-over reference values.)
+CONSTITUTION_EXCLUSION_BOX_SUM = 828        # carried-over figure
+CONSTITUTION_LOS_DISAGREEMENTS = 204        # carried-over figure, measured by the parent
+CONSTITUTION_LOS_BOTH_PRESENT = 112523      # carried-over figure
 
-# The nine namespaces `run_all.py` reserves for this fragment (CLAUDE.md 4.2 plus the
-# `prespec.` addition ratified in notes_run_all.md section 4). Validated at write time, so a
+# The nine namespaces `run_all.py` reserves for this fragment. Validated at write time, so a
 # namespace violation fails here rather than at the merge.
 RESERVED_PREFIXES = ("cohort.", "ladder.", "gate.", "derived.", "timingfield.",
                      "losfield.", "inoutfield.", "dq.", "prespec.")
@@ -312,20 +312,20 @@ if _not_features:
         f"[02] {_not_features} are recoded in place but are not model features. The rule "
         f"is: recode a raw column only when variable_dict.FEATURE_PRETTY names it."
     )
-# notes_variable_dict.md 7.1, BINDING: `PRIMARY_MODEL_TERMS` is deleted in this project
+# `PRIMARY_MODEL_TERMS` is deleted in this project
 # because it fits no hematoma model. `MODEL_COMPLETE_TERMS` carries the same six columns in
 # the same order, so `MODEL_COMPLETE` reproduces byte for byte.
 if hasattr(VD, "PRIMARY_MODEL_TERMS"):
     raise SystemExit(
         "[02] variable_dict.PRIMARY_MODEL_TERMS exists again. It was deleted deliberately "
-        "because this project fits no hematoma risk model (CLAUDE.md 6.6). Read "
+        "because this project fits no hematoma risk model. Read "
         "MODEL_COMPLETE_TERMS, which is a ported completeness roster and not a model."
     )
 _missing_roster = [c for c in VD.MODEL_COMPLETE_TERMS if c not in VD.LABELS]
 if _missing_roster:
     raise SystemExit(f"[02] MODEL_COMPLETE_TERMS names unlabelled columns {_missing_roster}")
-# The eight timed outcomes are a contract between T2 and T4; neither may invent a name the
-# other does not have (.build_facts.md section 5).
+# The eight timed outcomes are a contract between the label layer and this build; neither may invent a name the
+# other does not have.
 for _o in VD.TIMED_OUTCOMES:
     for _name in (_o.event_col, _o.pod_col, VD.postdisch_column(_o.key),
                   VD.timed_both_column(_o.key)) + tuple(_o.raw_fields):
@@ -338,17 +338,17 @@ if "POD_HEMATOMA" in VD.LABELS:
     raise SystemExit(
         "[02] variable_dict.LABELS gained POD_HEMATOMA. The roster points the hematoma "
         "outcome at the parent's HEMATOMA_POD column and a second day column must not be "
-        "created (notes_variable_dict.md 7.4)."
+        "created."
     )
 
 
 # ===========================================================================
-# UNITS AND SCALES (.build_facts.md section 9)
+# UNITS AND SCALES
 # ===========================================================================
 # The rule is: NEVER infer a scale from a key suffix, and read the declaration published by
-# the step that OWNS the key. Section 9.3 closed the fourteen namespaces owned by `03`, `05`
-# and `06`; section 9.6 records that this step's nine were never asked for theirs, so a gate
-# obeying 9.2 item 4 would fail on every key this file publishes. These declarations close
+# the step that OWNS the key. The fourteen namespaces owned by `03`, `05`
+# and `06` already declare theirs; this step's nine had not, so a gate
+# asking each key for its unit would fail on every key this file publishes. These declarations close
 # that gap for `02`.
 #
 # Most of what this step publishes is a COUNT, which is unambiguous. It is declared anyway,
@@ -754,7 +754,7 @@ SCALE_DECLARATIONS = (
         "The data-quality namespace publishes counts of patients, counts of hematoma events "
         "on the carried-over reconciliations, and percentages on the 0 to 100 scale. TWO "
         "families carry a unit their name does not. The carried-over reoperation day, both "
-        "the plan's own figure and the value re-derived on each rung, is an integer "
+        "the original figure and the value re-derived on each rung, is an integer "
         "POSTOPERATIVE DAY published under a bare name with no unit in it. The carried-over "
         "share on the same rungs is a percentage, and the opposite-tie variant beside it is "
         "a percentage on the same denominator and not a difference. Nothing in this "
@@ -897,8 +897,7 @@ def _scale_family_regex(pattern: str):
 def publish_scale_declarations(results: dict) -> None:
     """Declare the unit of every numeric family this step publishes.
 
-    Binding: `.build_facts.md` section 9, and section 9.6 specifically, which records that
-    this step's nine namespaces were the gap. One declaration per namespace, each scoped to
+    This step's nine namespaces had no declarations before. One declaration per namespace, each scoped to
     its own namespace and saying so, because the merged `results.json` resolves the generic
     interval suffixes to at least four incompatible scales and no step's rule is project
     wide.
@@ -913,7 +912,7 @@ def publish_scale_declarations(results: dict) -> None:
 def assert_scale_coverage(results: dict) -> int:
     """Every published key resolves to exactly one declared family. Raises otherwise.
 
-    This is what makes `.build_facts.md` 9.2 item 4 satisfiable without a special case: a
+    This is what makes a unit lookup satisfiable without a special case: a
     gate can ask this fragment for the unit of ANY key it holds and get one answer. A new
     key added without a family fails here, inside the step that created it, rather than in
     a downstream gate that cannot know what the key means.
@@ -942,7 +941,7 @@ def assert_scale_coverage(results: dict) -> int:
         problems.append(f"matched by more than one declared family: {sorted(ambiguous)[:10]}")
     if problems:
         raise SystemExit(
-            "[02] scale-declaration coverage gap (.build_facts.md 9.2 item 4):\n       "
+            "[02] scale-declaration coverage gap:\n       "
             + "\n       ".join(problems)
         )
     return _scale_family_count()
@@ -954,7 +953,7 @@ if sorted(_declared_ns) != sorted(p.rstrip(".") for p in RESERVED_PREFIXES):
     raise SystemExit(
         f"[02] SCALE_DECLARATIONS covers {sorted(_declared_ns)} but this step reserves "
         f"{sorted(p.rstrip('.') for p in RESERVED_PREFIXES)}. Every reserved namespace "
-        f"declares its own units (.build_facts.md 9.2 item 2)."
+        f"declares its own units."
     )
 if len(set(_declared_ns)) != len(_declared_ns):
     raise SystemExit(f"[02] SCALE_DECLARATIONS declares a namespace twice: {_declared_ns}")
@@ -995,7 +994,7 @@ def _yesno(series: pd.Series) -> pd.Series:
 def _complication(series: pd.Series) -> pd.Series:
     """NSQIP complication text -> nullable Int8, recoded as `!= 'No Complication'`.
 
-    Testing `== 'Yes'` yields an all-zero outcome column (CLAUDE.md 6e.3). Blank is the
+    Testing `== 'Yes'` yields an all-zero outcome column. Blank is the
     SQL NULL and stays missing.
     """
     v = _text(series)
@@ -1026,7 +1025,7 @@ def _positive(series: pd.Series) -> pd.Series:
 
 
 def _still_in_hospital(a: pd.DataFrame) -> pd.Series:
-    """`STILLINHOSP` as a boolean mask, case-insensitively (CLAUDE.md 9.13).
+    """`STILLINHOSP` as a boolean mask, case-insensitively.
 
     The column means "still in hospital beyond 30 days after the operation", so a positive
     value says the patient was NEVER discharged inside the follow-up window. That is the
@@ -1066,11 +1065,11 @@ def pct(numer, denom) -> float:
     return round(100.0 * numer / denom, 4) if denom else float("nan")
 
 
-# --- code-set rendering (CLAUDE.md hard rule 5) ----------------------------
-# `cohort_schema.md` and `derived/notes_02.md` describe what each derived column matches,
+# --- code-set rendering ----------------------------
+# `cohort_schema.md` and the step's notes file describe what each derived column matches,
 # and those descriptions used to spell the CPT and ICD codes out as literals. A literal in
 # a description string is exactly as capable of drifting from `cpt_acdf.py` as a literal in
-# a predicate, and a reviewer reading the schema has no way to tell that it has. The three
+# a predicate, and a reader of the schema has no way to tell that it has. The three
 # helpers below render the AUTHORITATIVE sets, so a code can only ever be typed once, in
 # `cpt_acdf.py`. Nothing here is a predicate; the predicates already import from `cpt_acdf`.
 def cpt_list(codes, sep: str = "/") -> str:
@@ -1131,7 +1130,7 @@ def read_bundle(path: pathlib.Path = EXPORT_CSV) -> pd.DataFrame:
         )
     # keep_default_na=False is LOAD-BEARING: PRSEPIS stores the literal string 'None' for
     # "no preoperative sepsis" and pandas would otherwise read it as NaN, inverting the
-    # sepsis filter (CLAUDE.md 6e.6 / 6d.8). ANESTHES = 'None' has the same shape.
+    # sepsis filter. ANESTHES = 'None' has the same shape.
     d = pd.read_csv(path, dtype=str, keep_default_na=False, low_memory=False)
     if d.shape[1] != EXPECTED_BUNDLE_COLS:
         raise SystemExit(
@@ -1142,7 +1141,7 @@ def read_bundle(path: pathlib.Path = EXPORT_CSV) -> pd.DataFrame:
     if len(d) != CPT.COHORT_LADDER_N["identified"]:
         raise SystemExit(
             f"[02] bundle has {len(d):,} rows, expected "
-            f"{CPT.COHORT_LADDER_N['identified']:,}. CLAUDE.md 8.5: a mismatch is a stop "
+            f"{CPT.COHORT_LADDER_N['identified']:,}. A mismatch is a stop "
             f"condition, not a number to overwrite."
         )
     if (_text(d["PRSEPIS"]) == NO_SEPSIS).sum() == 0:
@@ -1154,7 +1153,7 @@ def read_bundle(path: pathlib.Path = EXPORT_CSV) -> pd.DataFrame:
     if absent:
         raise SystemExit(
             f"[02] the bundle is missing {absent}. This project's variable list is the "
-            f"parent's plus exactly that column (.build_facts.md section 4)."
+            f"parent's plus exactly that column."
         )
     return d
 
@@ -1165,7 +1164,7 @@ def read_bundle(path: pathlib.Path = EXPORT_CSV) -> pd.DataFrame:
 def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     """Add every derived column. Names match variable_dict.LABELS keys verbatim.
 
-    `gate1_rebuild=True` is GATE 1's strengthened structural leg (CLAUDE.md 8.3) and is used
+    `gate1_rebuild=True` is GATE 1's strengthened structural leg and is used
     nowhere else. The frame arrives straight from the raw CSV with every column in
     GATE1_ADDED_COLUMNS DELETED, so the one block below that legitimately reads the added
     column -- the billing-label build, which no eligibility predicate touches -- is skipped
@@ -1180,7 +1179,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
         d[col] = _num(d[col])
     d["AGE"] = d["AGE"].astype("Int16")
 
-    # Year handling (CLAUDE.md 9.2). The warehouse year is delivered in the bundle as
+    # Year handling. The warehouse year is delivered in the bundle as
     # PUFYEAR (the curated view COALESCEs the in-file 2012-2014 hole with puf_year).
     # OPERYR is asserted identical and is set from the same source so the FEATURE_PRETTY
     # key `OPERYR` and the era key `PUFYEAR` can never disagree.
@@ -1191,7 +1190,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
         raise SystemExit(
             f"[02] OPERYR disagrees with PUFYEAR on {disagree_year:,} rows. They agreed on "
             f"all {len(d):,} rows when the contract was verified. Investigate before "
-            f"choosing a year axis (CLAUDE.md 9.2)."
+            f"choosing a year axis."
         )
     d["PUFYEAR"] = d["PUFYEAR"].astype("Int16")
     d["OPERYR"] = d["PUFYEAR"]
@@ -1205,7 +1204,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     if (casetype[late] == "").any():
         raise SystemExit(
             "[02] CASETYPE is NULL somewhere in 2021-2024. The COALESCE(...,'Elective') "
-            "default would silently admit those cases (CLAUDE.md 9.3)."
+            "default would silently admit those cases."
         )
     d["ELECTIVE"] = _i8((emerg != "Yes") & ((casetype == "") | (casetype == "Elective")), d.index)
 
@@ -1234,7 +1233,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     male[sex.eq("female")] = 0.0
     d["MALE"] = male.astype("Int8")           # 'non-binary' is neither; left missing
 
-    # NEW: the locked age stratifier (CLAUDE.md 6.5). The cut points and the level strings
+    # NEW: the locked age stratifier. The cut points and the level strings
     # are IMPORTED from variable_dict, never typed here, so the parquet levels and the
     # display order cannot drift. Blank where AGE is missing.
     age_f = d["AGE"].astype("Float64")
@@ -1322,7 +1321,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
 
     # Burden is defined ONLY where the full panel is measured. Anything else would score a
     # missing lab as normal and dilute the exposure. BLEEDDIS is 0% NULL, so LAB_COMPLETE
-    # is the binding condition. Components are taken from variable_dict.BURDEN_COMPONENTS.
+    # is the limiting condition. Components are taken from variable_dict.BURDEN_COMPONENTS.
     comp = list(VD.BURDEN_COMPONENTS)
     burden = sum(d[c].astype("Float64") for c in comp)
     burden = burden.where(d["LAB_COMPLETE"].astype("boolean").fillna(False))
@@ -1340,7 +1339,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     levels = [CPT.count_levels(list(t)) for t in d[oc].itertuples(index=False, name=None)]
     d["LEVELS_N"] = pd.Series(levels, index=d.index, dtype="Int16")
     d["LEVELS_PER_LEVEL"] = d["LEVELS_N"].astype("Float64")
-    # CLAUDE.md 6.6. BOTH per-level terms are materialized because the companion project
+    # BOTH per-level terms are materialized because the companion project
     # carries both and dropping one would fork the two cohorts. THIS PROJECT FITS NEITHER:
     # it fits no hematoma risk model at all. Capping is a value transform on an existing
     # column, so it cannot move the ladder or any denominator.
@@ -1355,8 +1354,8 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d.loc[spec == "", "SPEC_CAT"] = ""
 
     # --- primary outcome ----------------------------------------------------
-    # Slot 1 only; UNGATED union of all four ICD columns in every year (CLAUDE.md 6e.4).
-    # The ICD-10 code set is `cpt_acdf.HEMATOMA_DEFINITION`, V2 (cpt_acdf section 5a). The
+    # Slot 1 only; UNGATED union of all four ICD columns in every year.
+    # The ICD-10 code set is `cpt_acdf.HEMATOMA_DEFINITION`, V2 (cpt_acdf note 5a). The
     # two other variants are materialized alongside it so `03` can publish them as
     # pre-specified sensitivity rows without re-deriving a cohort.
     hem_cpt = _flag_col(d[CPT.HEMATOMA_CPT_COLUMN], CPT.is_hematoma_cpt)
@@ -1382,21 +1381,21 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
                         lambda c, _v=_variant: CPT.is_hematoma_icd10_variant(c, _v))
         d[f"HEMATOMA_{_variant}"] = _i8((hem_cpt | hem_i9 | v10).to_numpy(dtype=bool), d.index)
     # The primary definition must be the one cpt_acdf names, and the variant columns must
-    # differ from it in exactly the direction section 5a states. A silent switch back to
+    # differ from it in exactly the direction note 5a states. A silent switch back to
     # the old code set would otherwise be invisible.
     if CPT.HEMATOMA_DEFINITION != "V2":
         raise SystemExit(
             f"[02] cpt_acdf.HEMATOMA_DEFINITION is {CPT.HEMATOMA_DEFINITION!r}; this "
-            f"build expects the V2 primary outcome (CLAUDE.md 6d.9)."
+            f"build expects the V2 primary outcome."
         )
     if not (int(d["HEMATOMA_V1"].sum()) < int(d["HEMATOMA_V0"].sum())
             < int(d["HEMATOMA"].sum())):
         raise SystemExit(
             "[02] the hematoma code-set variants are not ordered V1 < V0 < V2 on the "
-            "identified cohort. CLAUDE.md 7.4: that is a stop condition."
+            "identified cohort. That is a stop condition."
         )
     # The roster points the hematoma outcome at THIS column; `POD_HEMATOMA` must not be
-    # created (notes_variable_dict.md 7.4). The timing-field handling rule is applied here
+    # created. The timing-field handling rule is applied here
     # exactly as it is to every other POD_* column; the raw form is kept internally so the
     # difference between the two can be measured and published rather than assumed to be
     # zero.
@@ -1416,7 +1415,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d["PNEUMONIA"] = _complication(d["OUPNEUMO"])
     d["REOP_TRACH"] = _i8(_flag_col(d[CPT.HEMATOMA_CPT_COLUMN],
                                     CPT.is_tracheostomy_cpt).to_numpy(dtype=bool), d.index)
-    # NEW (CLAUDE.md 6.2): the wider slots-1-and-2 tracheostomy marker. ASCERTAINMENT
+    # NEW: the wider slots-1-and-2 tracheostomy marker. ASCERTAINMENT
     # SUPPLEMENT ONLY. It is deliberately NOT in AIRWAY_COMP or WINDOW_COMP, so this
     # project's composite stays the parent's frozen slot-1 implementation and the two papers
     # cannot disagree about it. The invariant that the composite is unchanged either way is
@@ -1427,7 +1426,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d["REOP_TRACH_SLOT12"] = _i8(
         _positive(d["REOP_TRACH"]).to_numpy() | trach_slot2, d.index)
 
-    # CLAUDE.md 6.2 (parent 6b): reintubation OR ventilator > 48 h OR reoperative
+    # Reintubation OR ventilator > 48 h OR reoperative
     # tracheostomy. Pneumonia is EXCLUDED: parenchymal infection, not an airway-patency
     # event.
     airway = (d["REINTUBATION"].astype("Float64").fillna(0)
@@ -1440,8 +1439,8 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d["READMIT_UNPLANNED"] = _i8((_text(d["UNPLANNEDREADMISSION1"]) == "Yes").astype(float),
                                  d.index)
 
-    # There is NO `DEATH` column (CLAUDE.md 9.4), so mortality has to be derived from
-    # DOPERTOD and YRDEATH. CLAUDE.md 9.4 fixes which one is the 30-day flag:
+    # There is NO `DEATH` column, so mortality has to be derived from
+    # DOPERTOD and YRDEATH. The 30-day flag is fixed as follows:
     #
     #   MORT30            DOPERTOD present. DOPERTOD is "days from operation to death" and
     #                     its values are ASSERTED below to lie in [0, 30], so this column
@@ -1462,7 +1461,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
         if lo < 0 or hi > 30:
             raise SystemExit(
                 f"[02] DOPERTOD ranges [{lo:g}, {hi:g}], outside the 30-day window that "
-                f"MORT30 asserts. CLAUDE.md 7.4: that is a stop condition, not a number "
+                f"MORT30 asserts. That is a stop condition, not a number "
                 f"to clip."
             )
     d["MORT30"] = _i8(dopertod.notna().astype(float), d.index)
@@ -1473,16 +1472,16 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d["_YRDEATH_ONLY"] = dopertod.isna() & d["YRDEATH"].notna()
     d["_YRDEATH_ONLY_OUT_OF_WINDOW"] = d["_YRDEATH_ONLY"] & (d["DOPTODIS"] > 30)
 
-    # NEW: the safe-discharge composite (CLAUDE.md 6.2). Exactly HEMATOMA OR AIRWAY_COMP.
+    # NEW: the safe-discharge composite. Exactly HEMATOMA OR AIRWAY_COMP.
     # It gets POD_WINDOW and nothing else: it is not one of the eight ladder outcomes, so it
-    # has no POSTDISCH_ or TIMED_BOTH_ column (notes_variable_dict.md 7.4).
+    # has no POSTDISCH_ or TIMED_BOTH_ column.
     d["WINDOW_COMP"] = _i8(
         ((d["HEMATOMA"].astype("Float64").fillna(0)
           + d["AIRWAY_COMP"].astype("Float64").fillna(0)) > 0).astype(float), d.index)
 
     # --- length of stay and discharge --------------------------------------
     d["LOS_POSTOP"] = d["DOPTODIS"]           # true postoperative LOS; never INOUT
-    # NEW: the independent cross-check (CLAUDE.md 8.7). NEVER the analysis variable.
+    # NEW: the independent cross-check. NEVER the analysis variable.
     d["LOS_POSTOP_CHECK"] = d["TOTHLOS"] - d["HTOODAY"]
     _both_los = d["LOS_POSTOP"].notna() & d["LOS_POSTOP_CHECK"].notna()
     d["LOS_POSTOP_AGREE"] = _i8(
@@ -1507,7 +1506,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
 
     dest = _text(d["DISCHDEST"])
     d["DISCHDEST"] = dest
-    # The level map is imported, not re-declared (notes_variable_dict.md 7.3). A blank
+    # The level map is imported, not re-declared. A blank
     # returns DEST_CAT_MISSING, the empty string, which is exactly what the parent's
     # `.fillna("")` produced; any unmapped non-blank level RAISES.
     try:
@@ -1515,7 +1514,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     except ValueError as exc:
         raise SystemExit(
             f"[02] {exc}\n     The vocabulary swapped once already at 2021; map a new "
-            f"level deliberately in variable_dict.py (CLAUDE.md 9.5)."
+            f"level deliberately in variable_dict.py."
         ) from None
     d["DEST_CAT"] = dest.map(dest_cache)
     if VD.DEST_CAT_MISSING != "":
@@ -1530,7 +1529,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     d["NONHOME_DISCH"] = nonhome.astype("Int8")   # 'Other' (AMA/Expired/Unknown) = missing
 
     # NEW: `INOUT`, the BILLING label, banned in the parent and required here because the
-    # measurement critique is one of this paper's two headline findings (PLAN.md 6.4). Two
+    # measurement critique is one of this paper's two headline findings. Two
     # levels, explicit map imported from variable_dict, unmapped level RAISES, NULL-safe for
     # the single SQL NULL row that exists database-wide. It is NEVER a discharge measure:
     # true same-day discharge is SAMEDAY_DISCH, derived from DOPTODIS.
@@ -1548,13 +1547,13 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
             pd.to_numeric(inout.map(inout_cache), errors="coerce").to_numpy(dtype=float),
             d.index)
 
-    # NEW: the two coding-era sensitivity strata (PLAN.md 6.6 and 7.3).
+    # NEW: the two coding-era sensitivity strata.
     _year = d["PUFYEAR"].astype("Float64")
     d["ERA_ICD10"] = _i8(np.where(_year.notna(), _year.ge(2016).astype(float), np.nan), d.index)
     d["ERA_EMERGNCY"] = _i8(np.where(_year.notna(), _year.le(2020).astype(float), np.nan),
                             d.index)
 
-    # PORTED, never analysed here: CLAUDE.md 7.1 gives the dysphagia analysis to the parent
+    # PORTED, never analysed here: the dysphagia analysis belongs to the parent
     # in every form. The columns exist so the two cohorts cannot fork.
     d["DYSPHAGIA_READMIT"] = _i8(_flag_col(
         d[CPT.DYSPHAGIA_READMISSION_ICD10_COLUMN],
@@ -1567,7 +1566,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
                               ).astype(float), d.index)
 
     # --- THE TIMING COLUMNS (new in this project) --------------------------
-    # Rule (.build_facts.md 5.2): a POD_* value is taken from the raw days-to-event field
+    # Rule: a POD_* value is taken from the raw days-to-event field
     # ONLY where the corresponding event flag is positive. A days-to-event value present on
     # a row whose event flag is negative is a data-quality finding: it is counted and
     # reported under `dq.negflag_days.*`, and it never reaches a POD_* column.
@@ -1590,7 +1589,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
     ], axis=1)
     d["POD_TRACH12"] = _t12.min(axis=1)
 
-    # CLAUDE.md 6.2: composite timing is the EARLIEST observed day among the components that
+    # Composite timing is the EARLIEST observed day among the components that
     # actually fired. A composite that fired but carries no observed component day stays
     # MISSING; it is never imputed and never given a boundary value.
     d["POD_AIRWAY"] = pd.concat(
@@ -1599,7 +1598,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
         [d["HEMATOMA_POD"], d["POD_AIRWAY"]], axis=1).min(axis=1)
 
     # The two generated families, one per timed outcome. The suffixes come from the ROSTER,
-    # not from the event-column name (notes_variable_dict.md 7.4), so they are built through
+    # not from the event-column name, so they are built through
     # the accessors and never spelled out here.
     _los_present = d["LOS_POSTOP"].notna().to_numpy()
     for _o in VD.TIMED_OUTCOMES:
@@ -1612,14 +1611,14 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
         with np.errstate(invalid="ignore"):
             _after = (_pod.to_numpy(dtype=float)
                       > d["LOS_POSTOP"].to_numpy(dtype=float))
-        # CLAUDE.md 6.3, LOCKED: POSTDISCH = (POD > LOS_POSTOP). An event on the same
+        # LOCKED: POSTDISCH = (POD > LOS_POSTOP). An event on the same
         # postoperative day as discharge counts as PRE-discharge, which is the conservative
         # choice for a safety claim. The OPPOSITE convention is NOT materialised here;
         # 04_postdischarge.py computes it inline from these frozen columns, which
-        # CLAUDE.md 4.1 grants as the single explicit exception.
+        # is the single explicit exception to the no-local-derivation rule.
         d[VD.postdisch_column(_o.key)] = _i8(
             np.where(_both, _after.astype(float), np.nan), d.index)
-        # Row 4 of the PLAN.md 6.2 denominator ladder, defined CONDITIONAL ON THE EVENT:
+        # Row 4 of the denominator ladder, defined CONDITIONAL ON THE EVENT:
         # 1 where the event fired and both fields are present, 0 where the event fired and
         # at least one is missing, MISSING where the event did not fire. Summing it gives
         # row 4 directly; counting its zeros gives the events lost between rows 1 and 4.
@@ -1627,7 +1626,7 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
             np.where(_fired, _both.astype(float), np.nan), d.index)
 
     # --- subgroup / denominator flags --------------------------------------
-    # PORTED COMPLETENESS ROSTER, NOT A MODEL (notes_variable_dict.md 7.1). The parent read
+    # PORTED COMPLETENESS ROSTER, NOT A MODEL. The parent read
     # `VD.PRIMARY_MODEL_TERMS`, which is deleted in this project. `MODEL_COMPLETE_TERMS`
     # carries the same six columns in the same order, so this flag reproduces byte for byte
     # and the two cohorts do not fork. Nothing is fitted on it here.
@@ -1646,10 +1645,10 @@ def derive(d: pd.DataFrame, gate1_rebuild: bool = False) -> pd.DataFrame:
 def ladder_masks(d: pd.DataFrame, replicate_plan: bool) -> "OrderedDict[str, pd.Series]":
     """The four cohort rungs as boolean masks over the full 124,344-row frame.
 
-    `replicate_plan=True` reproduces the plan's strict `TRY_CAST(AGE AS INT) >= 18`, which
+    `replicate_plan=True` reproduces the original specification's strict `TRY_CAST(AGE AS INT) >= 18`, which
     evaluates the raw PUF token '90+' to NULL and drops those patients. The curated view
     already normalized '90+' to 90, so the bundle contains them; the strict cast is
-    reproduced by treating the top-coded value as missing. Exactly the rows the plan drops,
+    reproduced by treating the top-coded value as missing. Exactly the rows the original specification drops,
     and the count is asserted against cpt_acdf.COHORT_LADDER_NONAGENARIAN_DELTA.
     """
     age = d["AGE"].astype("Float64")
@@ -1679,7 +1678,7 @@ def ladder_verdict(counts, expected_n, expected_events) -> bool:
 
     The VERDICT a gate publishes, computed from the same comparison `assert_ladder` makes
     and from nothing else. `assert_ladder` stays the stop condition; this is the key that
-    RECORDS the result, so `notes_02.md`'s gate table renders a measured verdict and is
+    RECORDS the result, so the notes file's gate table renders a measured verdict and is
     capable of printing FAIL. A literal `True` there would make the table decorative.
     """
     return all(counts[step][0] == expected_n[step]
@@ -1699,7 +1698,7 @@ def assert_ladder(counts, expected_n, expected_events, label: str) -> None:
                        f"{expected_events[step]:,} (delta {ev - expected_events[step]:+,})")
     if bad:
         raise SystemExit(
-            "[02] LADDER MISMATCH. CLAUDE.md 7.4: a mismatch beyond tolerance is a STOP\n"
+            "[02] LADDER MISMATCH. A mismatch beyond tolerance is a STOP\n"
             "     CONDITION, not a number to overwrite. Do not tune a rule to make it\n"
             "     match; report it.\n       " + "\n       ".join(bad)
         )
@@ -1717,7 +1716,7 @@ def print_ladder(counts, expected_n, expected_events, title: str) -> None:
 
 
 # ===========================================================================
-# 4. GATE 1 -- the extended export must not move the cohort (CLAUDE.md 8.3)
+# 4. GATE 1 -- the extended export must not move the cohort
 # ===========================================================================
 def gate_one(d: pd.DataFrame, counts_b, counts_a, n_columns: int) -> dict:
     """Adding `INOUT` to the variable list must not change a single row count.
@@ -1740,9 +1739,9 @@ def gate_one(d: pd.DataFrame, counts_b, counts_a, n_columns: int) -> dict:
          on the parent's 142-column bundle. Reproducing them on the 143-column bundle is
          the gate's actual claim.
 
-    T1 additionally proved at the EXPORT layer that deleting `INOUT` from every row of this
-    bundle reproduces the parent's bundle byte for byte, with identical SHA-256
-    (.build_facts.md 7.1). That proof is recorded here as provenance, not re-run.
+    It was additionally proved at the EXPORT layer that deleting `INOUT` from every row of this
+    bundle reproduces the parent's bundle byte for byte, with identical SHA-256.
+    That proof is recorded here as provenance, not re-run.
     """
     out = {}
     width_ok = n_columns == PARENT_BUNDLE_COLS + len(GATE1_ADDED_COLUMNS)
@@ -1811,7 +1810,7 @@ def gate_one(d: pd.DataFrame, counts_b, counts_a, n_columns: int) -> dict:
         "exactly one column, row for row."
     )
     out["gate.1.export_proof"] = (
-        "T1, .build_facts.md 7.1: 124,344 rows compared, 0 rows differing, column order "
+        "Export-layer check: 124,344 rows compared, 0 rows differing, column order "
         "identical after removing the added column, SHA-256 identical."
     )
     return out
@@ -1819,7 +1818,7 @@ def gate_one(d: pd.DataFrame, counts_b, counts_a, n_columns: int) -> dict:
 
 def print_gate_one(g1: dict) -> None:
     verdict = "PASS" if g1["gate.1.pass"] else "FAIL"
-    print("[02] GATE 1 -- the extended export must not move the cohort (CLAUDE.md 8.3)")
+    print("[02] GATE 1 -- the extended export must not move the cohort")
     print(f"[02]   bundle width          {g1['gate.1.columns']} = "
           f"{g1['gate.1.parent_columns']} parent + {g1['gate.1.added_columns']}   "
           f"{'OK' if g1['gate.1.width_pass'] else 'FAIL'}")
@@ -1831,13 +1830,13 @@ def print_gate_one(g1: dict) -> None:
           f"{'OK' if g1['gate.1.ladder_unchanged'] else 'FAIL'}")
     print(f"[02]   GATE 1 {verdict}")
     if not g1["gate.1.pass"]:
-        print("[02]   BLOCKER: CLAUDE.md 8.3 makes this a stop condition. The export layer "
+        print("[02]   BLOCKER: this is a stop condition. The export layer "
               "already proved the bundle is the parent's plus one column, so the cause is "
               "in 02.")
 
 
 # ===========================================================================
-# 5. THE PRE-FLIGHT DATA CHECK (CLAUDE.md 8.6), before any curve is ever drawn
+# 5. THE PRE-FLIGHT DATA CHECK, before any curve is ever drawn
 # ===========================================================================
 def preflight_timing(a: pd.DataFrame) -> dict:
     """Tabulate every timing field's observed value set, and conditional missingness.
@@ -1853,12 +1852,12 @@ def preflight_timing(a: pd.DataFrame) -> dict:
          here. Nothing is clipped and nothing is silently dropped.
       3. For every timed outcome, how missing is the days-to-event field GIVEN THAT THE
          EVENT FLAG IS POSITIVE? That is the number that matters and it is unmeasured in the
-         literature. The database-wide percentages in PLAN.md 2.4 are EVENT RATES, not
+         literature. The database-wide percentages quoted earlier are EVENT RATES, not
          missingness rates, and the manuscript must not confuse the two.
       4. WHY is each event lost between ladder rows 1 and 4? The loss is decomposed three
          ways: a missing days-to-event field, a missing LENGTH OF STAY on a patient flagged
          still in hospital beyond 30 days, and a missing length of stay on a patient NOT so
-         flagged. The split is what lets 04 bound honestly (PLAN.md 6.2): a patient who was
+         flagged. The split is what lets 04 bound honestly: a patient who was
          never discharged inside the window cannot have had the event after a discharge that
          did not occur, so the naive "all missing events post-discharge" extreme is not
          merely conservative for those rows, it is structurally impossible. NOTHING is
@@ -2001,7 +2000,7 @@ def preflight_timing(a: pd.DataFrame) -> dict:
     out["timingfield.loss_all_los_loss_is_stillinhosp"] = bool(
         len(still_all) > 0 and all(still_all))
     out["timingfield.loss_decomposition_note"] = (
-        "The loss between rows 1 and 4 of the PLAN.md 6.2 denominator ladder is decomposed "
+        "The loss between rows 1 and 4 of the denominator ladder is decomposed "
         "into three disjoint reasons: the days-to-event field is missing; the length of "
         "stay is missing on a patient flagged still in hospital beyond 30 days; and the "
         "length of stay is missing on a patient not so flagged. Nothing is reclassified and "
@@ -2011,7 +2010,7 @@ def preflight_timing(a: pd.DataFrame) -> dict:
         "structurally impossible rather than merely conservative."
     )
     out["timingfield.loss_bounding_handoff"] = (
-        "Binding on 04_postdischarge.py: report the STILLINHOSP-conditioned bound as the "
+        "Required of 04_postdischarge.py: report the STILLINHOSP-conditioned bound as the "
         "primary bounding sensitivity, and show the naive unconditional bound only beside "
         "it, labelled as the unconditional extreme."
     )
@@ -2021,7 +2020,7 @@ def preflight_timing(a: pd.DataFrame) -> dict:
 def negative_flag_days(a: pd.DataFrame) -> dict:
     """Days-to-event values present on rows whose event flag is NEGATIVE.
 
-    .build_facts.md 5.2: count it, report it, do not use it. None of these values reaches a
+    Count it, report it, do not use it. None of these values reaches a
     `POD_*` column, because every `POD_*` column is masked by its own event flag.
     """
     out = {}
@@ -2063,7 +2062,7 @@ def negative_flag_days(a: pd.DataFrame) -> dict:
 def second_events(a: pd.DataFrame) -> dict:
     """Patients with a SECOND event whose timing is only partially observed.
 
-    CLAUDE.md 9.18 and PLAN.md section 4: NSQIP records days-to-event for occurrence 1 in
+    NSQIP records days-to-event for occurrence 1 in
     most families, plus a second reoperation and a second through fifth readmission, and
     nothing beyond. All analyses are time-to-first-event and this is the count the Methods
     must state.
@@ -2104,9 +2103,9 @@ def second_events(a: pd.DataFrame) -> dict:
 def carryover_reconciliation(d: pd.DataFrame, masks) -> dict:
     """Which cohort rung and which code set does the carried-over 41.3% come from?
 
-    `PLAN.md` 2.2 carries "41.3% of hematoma reoperations occur after that patient's own
-    discharge" and `PLAN.md` 13 lists its denominator as an OPEN ITEM: it was never
-    recorded. `CLAUDE.md` 8.4 makes it a Gate 2 number and 8.5 makes a mismatch a stop
+    The carried-over figure "41.3% of hematoma reoperations occur after that patient's own
+    discharge" has a denominator that was an OPEN ITEM: it was never
+    recorded. It is a Gate 2 number, and a mismatch is a stop
     condition rather than something to overwrite in either direction.
 
     The frozen columns this step already produces answer the question directly, so the
@@ -2117,7 +2116,7 @@ def carryover_reconciliation(d: pd.DataFrame, masks) -> dict:
     **`04_postdischarge.py` OWNS the published post-discharge fraction and must re-derive
     it.** These keys live in this step's data-quality namespace precisely so they cannot
     collide with, or be mistaken for, the published figure. Nothing here is adopted: the
-    manuscript reports the ANALYTIC-cohort figure (`CLAUDE.md` 4.4) whatever this says.
+    manuscript reports the ANALYTIC-cohort figure whatever this says.
     """
     out = {}
     los = d["LOS_POSTOP"]
@@ -2147,12 +2146,12 @@ def carryover_reconciliation(d: pd.DataFrame, masks) -> dict:
         round(best[3], 1) == 41.3)
     out["dq.carryover.postdisch.owner"] = "04_postdischarge.py"
     out["dq.carryover.postdisch.note"] = (
-        "PLAN.md section 13 lists the denominator behind the carried-over 41.3% as an open "
+        "The denominator behind the carried-over 41.3% was an open "
         "item. Measured here from the frozen columns across every rung and both code sets. "
         "04_postdischarge.py owns the published figure and must re-derive it; the "
         "manuscript reports the analytic-cohort value whatever this reconciliation says, "
-        "because the analytic cohort is the study population (CLAUDE.md 4.4). A mismatch is "
-        "reported, not overwritten in either direction (CLAUDE.md 8.5).")
+        "because the analytic cohort is the study population. A mismatch is "
+        "reported, not overwritten in either direction.")
     # The companion carried-over figure, the share of hematoma reoperations on day 0 or 1.
     for step in LADDER_ORDER:
         for col, tag in (("HEMATOMA", "v2"), ("HEMATOMA_V0", "v0")):
@@ -2174,7 +2173,7 @@ def carryover_reconciliation(d: pd.DataFrame, masks) -> dict:
 
 
 def trach_invariant(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
-    """CLAUDE.md 6.2: AIRWAY_COMP must not move when the tracheostomy arm widens to slots 1+2.
+    """AIRWAY_COMP must not move when the tracheostomy arm widens to slots 1+2.
 
     The parent proved that every slot-2 tracheostomy already enters the composite through
     unplanned reintubation or prolonged ventilation, which is why this project can
@@ -2238,7 +2237,7 @@ def trach_invariant(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
 
 
 def expired_reconciliation(a: pd.DataFrame) -> dict:
-    """CLAUDE.md 8.8: reconcile DISCHDEST = 'Expired' against DOPERTOD and the mortality flag.
+    """Reconcile DISCHDEST = 'Expired' against DOPERTOD and the mortality flag.
 
     A patient who expired has no discharge day. They are a COMPETING EVENT, not a same-day
     discharge, and a length-of-stay field read naively would fold them into the discharge
@@ -2286,7 +2285,7 @@ def expired_reconciliation(a: pd.DataFrame) -> dict:
 
 
 # ===========================================================================
-# 6. cross-checks the constitution asks 02 to report
+# 6. ported cross-checks that 02 reports
 # ===========================================================================
 def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
     a = d[mask_analytic]
@@ -2295,7 +2294,7 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
     disagree = both & (subtraction != a["DOPTODIS"])
     delta = (subtraction - a["DOPTODIS"])[disagree]
 
-    # --- CLAUDE.md 9.4: is MORT30 really a 30-day flag? --------------------
+    # --- is MORT30 really a 30-day flag? --------------------
     dop = a["DOPERTOD"]
     yonly = a["_YRDEATH_ONLY"]
     out_win = a["_YRDEATH_ONLY_OUT_OF_WINDOW"]
@@ -2316,14 +2315,14 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
         "derived.mort_any.out_of_window_los_postop_days": sorted(
             int(v) for v in a.loc[out_win, "DOPTODIS"].dropna()),
         # Tied to the destination rather than to a list position, so the sentence in
-        # notes_02.md cannot silently swap the two cases if the data ever changes.
+        # the notes file cannot silently swap the two cases if the data ever changes.
         "derived.mort_any.out_of_window_expired_days": sorted(
             int(v) for v in a.loc[expired, "DOPTODIS"].dropna()),
         "derived.mort_any.out_of_window_discharged_alive_days": sorted(
             int(v) for v in a.loc[out_win & ~expired, "DOPTODIS"].dropna()),
     }
 
-    # --- CLAUDE.md 9.6: the NONHOME_DISCH era break at 2021 ---------------
+    # --- the NONHOME_DISCH era break at 2021 ---------------
     # A SECONDARY OUTCOME, not a covariate, so the break matters more, not less. The rate
     # is computed on non-missing NONHOME_DISCH ('Other' destinations are missing, not 0).
     era = {}
@@ -2347,7 +2346,7 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
         / era["derived.nonhome.era_2012_2020.rate_pct"], 2)
     era["derived.nonhome.no_trend_claim"] = True
 
-    # --- CLAUDE.md 8.7: the length-of-stay field agreement, before either is used ------
+    # --- the length-of-stay field agreement, before either is used ------
     # `DOPTODIS` is the PRIMARY postoperative length-of-stay field: direct, present in every
     # study year, no arithmetic. `TOTHLOS - HTOODAY` is the INDEPENDENT cross-check and is
     # never the analysis variable. Every disagreement is a data-quality finding.
@@ -2424,7 +2423,7 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
             "every one of them scored pre-discharge. The sub-counts are published as their "
             "own keys so a downstream step reads numbers rather than this sentence."),
         "losfield.stillinhosp_bounding_note": (
-            "Binding on 04_postdischarge.py: these are the patients the bounding "
+            "Required of 04_postdischarge.py: these are the patients the bounding "
             "sensitivity must be conditioned on. A patient never discharged inside the "
             "follow-up window cannot have had an event after a discharge that did not "
             "occur, so the STILLINHOSP-conditioned bound is the primary one and the naive "
@@ -2451,7 +2450,7 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
         "field alone and their definitions are deliberately unchanged, because 05_inout.py "
         "needs the raw form for the agreement analysis. They therefore contain patients who "
         "did not go home: an expired discharge destination, a recorded death within 30 "
-        "days, or a still-in-hospital flag. Binding on 05_inout.py: exclude them explicitly "
+        "days, or a still-in-hospital flag. Required of 05_inout.py: exclude them explicitly "
         "and state the exclusion, rather than reporting a same-day-discharge rate that "
         "counts deaths as discharges.")
 
@@ -2513,17 +2512,17 @@ def cross_checks(d: pd.DataFrame, mask_analytic: pd.Series) -> dict:
 # (column, dtype-in-parquet, origin, definition) -- the source of cohort_schema.md.
 SCHEMA_SPEC = [
     ("CASE_UID", "str", "raw", "Unique key, '<puf_year>-<CASEID>'. CASEID alone repeats across years."),
-    ("PUFYEAR", "Int16", "raw", "Warehouse year (CLAUDE.md 9.2). The curated view COALESCEs the in-file 2012-2014 hole with puf_year, so this column is 0% NULL."),
+    ("PUFYEAR", "Int16", "raw", "Warehouse year. The curated view COALESCEs the in-file 2012-2014 hole with puf_year, so this column is 0% NULL."),
     ("OPERYR", "Int16", "derived", "Set equal to PUFYEAR after asserting the two agree on every row. FEATURE_PRETTY names OPERYR; the era logic uses PUFYEAR; they can never drift."),
     ("AGE", "Int16", "raw", "Years, top-coded at 90 ('90+' in the raw PUF, SMALLINT 90 on the curated view)."),
-    ("AGE_PER10", "float64", "derived", "AGE / 10. The age term of the both-ways comparison covariate set (CLAUDE.md 6.6); no other regression in this project reads it."),
+    ("AGE_PER10", "float64", "derived", "AGE / 10. The age term of the both-ways comparison covariate set; no other regression in this project reads it."),
     ("SEX", "str", "raw", "'male' / 'female' / 'non-binary'."),
     ("MALE", "Int8", "derived", "1 if SEX == 'male', 0 if 'female', MISSING for 'non-binary' (37 cases identified / 35 analytic). Non-binary is not female, so folding it into the reference group would be misclassification."),
     ("RACE_CAT", "str", "derived", "Six locked levels. ETHNICITY_HISPANIC == 'Yes' wins and maps to 'Hispanic'; otherwise RACE_NEW is mapped by an explicit table; comma-joined multi-race strings map to 'Other'; blank maps to 'Unknown'. An unmapped single-race level RAISES."),
     ("HEIGHT", "float64", "raw", "Inches."),
     ("WEIGHT", "float64", "raw", "Pounds."),
     ("BMI", "float64", "derived", f"703 * WEIGHT / HEIGHT^2. Set MISSING outside the CHOSEN clinical plausibility window [{BMI_MIN:.0f}, {BMI_MAX:.0f}] kg/m2. It is a chosen clinical rule and must never be described as discovered. PORTED UNCHANGED from the companion project, because moving a bound here would fork the two cohorts. The affected count and its hematoma events are published under derived.bmi.* and listed in cohort_schema.md under the decisions this file made."),
-    ("BMI_PER5", "float64", "derived", "BMI / 5. The body-mass-index term of the both-ways comparison covariate set (CLAUDE.md 6.6)."),
+    ("BMI_PER5", "float64", "derived", "BMI / 5. The body-mass-index term of the both-ways comparison covariate set."),
     ("ASACLAS", "str", "raw", "Four levels survive the cohort definition; '5-Moribund' and 'None assigned' are excluded."),
     ("ASA_CAT", "str", "derived", "'1-2' or '>=3' from the leading digit of ASACLAS."),
     ("ASA_GE3", "Int8", "derived", "1 if the leading digit of ASACLAS is 3 or 4. The ASA term of the both-ways comparison covariate set, and the same information as the locked ASA_CAT stratifier."),
@@ -2531,13 +2530,13 @@ SCHEMA_SPEC = [
     ("FNSTATUS_DEPENDENT", "Int8", "derived", "1 for Partially or Totally Dependent, 0 for Independent, MISSING for 'Unknown' (a real level, 851 identified, rising sharply since 2022)."),
     ("DIABETES", "str", "raw", "UPPERCASE levels NO / NON-INSULIN / INSULIN."),
     ("DIABETES_ANY", "Int8", "derived", "1 if insulin or non-insulin diabetes."),
-    ("BLEEDDIS", "Int8", "recoded", "Bleeding disorder, Yes/No text recoded in place to 0/1. NOT a drug exposure (CLAUDE.md 7.1). Component 1 of the coagulopathy burden."),
+    ("BLEEDDIS", "Int8", "recoded", "Bleeding disorder, Yes/No text recoded in place to 0/1. NOT a drug exposure. Component 1 of the coagulopathy burden."),
     ("SMOKE", "Int8", "recoded", "Current smoker, Yes/No recoded in place to 0/1."),
     ("HXCOPD", "Int8", "recoded", "COPD, Yes/No recoded in place to 0/1."),
-    ("HXCHF", "Int8", "recoded", "Heart failure, Yes/No recoded in place to 0/1. Prevalence TRIPLES at 2021 despite a documented 'terminology only' change (CLAUDE.md 6.7); do not pool without the caveat."),
+    ("HXCHF", "Int8", "recoded", "Heart failure, Yes/No recoded in place to 0/1. Prevalence TRIPLES at 2021 despite a documented 'terminology only' change; do not pool without the caveat."),
     ("HYPERMED", "Int8", "recoded", "Hypertension requiring medication, Yes/No recoded in place to 0/1. PORTED; it is a member of the completeness roster only and no regression in this project reads it."),
     ("DIALYSIS", "Int8", "recoded", "Dialysis dependence, Yes/No recoded in place to 0/1."),
-    ("STEROID", "Int8", "recoded", "Chronic steroid or immunosuppressant, Yes/No recoded in place to 0/1. The definition step is at 2021, not 2019. EXCLUDED from every analysis and every table in this project (CLAUDE.md 6.7); the column exists only because the ported in-place recode roster names it and dropping it would fork the two cohorts."),
+    ("STEROID", "Int8", "recoded", "Chronic steroid or immunosuppressant, Yes/No recoded in place to 0/1. The definition step is at 2021, not 2019. EXCLUDED from every analysis and every table in this project; the column exists only because the ported in-place recode roster names it and dropping it would fork the two cohorts."),
     ("PRHCT", "float64", "raw", "Preoperative hematocrit, %."),
     ("PRALBUM", "float64", "raw", "Preoperative albumin, g/dL."),
     ("PRINR", "float64", "raw", "Preoperative INR."),
@@ -2552,8 +2551,8 @@ SCHEMA_SPEC = [
     ("COAG_BURDEN_CAT", "str", "derived", "'0' / '1' / '>=2'; empty string where COAG_BURDEN_N is missing."),
     ("COAG_BURDEN_GE2", "Int8", "derived", "1 if COAG_BURDEN_N >= 2. The threshold exposure."),
     ("LEVELS_N", "Int16", "derived", f"cpt_acdf.count_levels over OTHERCPT1..10 = 1 + occurrences of CPT {CPT.ADDITIONAL_LEVEL_CPT}. UNCAPPED, so the right tail runs past 3. CONCPT* is NOT scanned."),
-    ("LEVELS_PER_LEVEL", "float64", "derived", "LEVELS_N as a float, UNCAPPED. PORTED. THIS PROJECT FITS NEITHER PER-LEVEL TERM: it fits no hematoma risk model at all (CLAUDE.md 6.6). Both are materialised so the two cohorts carry the same columns."),
-    ("LEVELS_PER_LEVEL_CAP3", "float64", "derived", f"LEVELS_N CAPPED at {LEVELS_CAP} ({LEVELS_CAP} or more levels all score {LEVELS_CAP}), as a float, for the per-level model term. The cap is EXPLICIT and load-bearing: an estimate from this column would be 'per level up to {LEVELS_CAP} or more', never 'per level'. PORTED so the two cohorts carry the same columns; THIS PROJECT FITS NO MODEL ON IT (CLAUDE.md 6.6)."),
+    ("LEVELS_PER_LEVEL", "float64", "derived", "LEVELS_N as a float, UNCAPPED. PORTED. THIS PROJECT FITS NEITHER PER-LEVEL TERM: it fits no hematoma risk model at all. Both are materialised so the two cohorts carry the same columns."),
+    ("LEVELS_PER_LEVEL_CAP3", "float64", "derived", f"LEVELS_N CAPPED at {LEVELS_CAP} ({LEVELS_CAP} or more levels all score {LEVELS_CAP}), as a float, for the per-level model term. The cap is EXPLICIT and load-bearing: an estimate from this column would be 'per level up to {LEVELS_CAP} or more', never 'per level'. PORTED so the two cohorts carry the same columns; THIS PROJECT FITS NO MODEL ON IT."),
     ("LEVELS_CAT", "str", "derived", "'1' / '2' / '>=3' from cpt_acdf.level_stratum."),
     ("LEVELS_GE3", "Int8", "derived", f"1 if LEVELS_N >= {LEVELS_CAP}."),
     ("ANT_INSTRUM", "Int8", "derived", f"Anterior cervical instrumentation: CPT {cpt_list(CPT.ANTERIOR_INSTRUMENTATION_CPTS)} in OTHERCPT1..10."),
@@ -2562,16 +2561,16 @@ SCHEMA_SPEC = [
     ("SPEC_CAT", "str", "derived", "'Neurosurgery' / 'Orthopaedic' / 'Other'. Note the raw level is spelled 'Orthopedics'."),
     ("ELECTIVE", "Int8", "derived", "NULL-safe elective flag: EMERGNCY != 'Yes' AND (CASETYPE is NULL OR CASETYPE == 'Elective'). EMERGNCY stops at 2020 and CASETYPE starts at 2021, so a predicate on either alone silently drops the other era."),
     ("EXCL_CORPECTOMY", "Int8", "derived", f"CPT {cpt_list(CPT.EXCLUSION_CORPECTOMY_CPTS)} in OTHERCPT1..10. Figure 1 exclusion box."),
-    ("EXCL_POSTERIOR", "Int8", "derived", f"CPT {cpt_list(CPT.EXCLUSION_POSTERIOR_CERVICAL_CPTS)} in OTHERCPT1..10. Describe as 'concurrent posterior spinal decompression or instrumentation', never 'posterior cervical' (the list carries a lumbar code and codes that are not cervical-specific; CLAUDE.md 9.17)."),
+    ("EXCL_POSTERIOR", "Int8", "derived", f"CPT {cpt_list(CPT.EXCLUSION_POSTERIOR_CERVICAL_CPTS)} in OTHERCPT1..10. Describe as 'concurrent posterior spinal decompression or instrumentation', never 'posterior cervical' (the list carries a lumbar code and codes that are not cervical-specific)."),
     ("EXCL_ARTHROPLASTY", "Int8", "derived", f"CPT {cpt_list(CPT.EXCLUSION_ARTHROPLASTY_CPTS)} in OTHERCPT1..10."),
     ("EXCL_ASA5", "Int8", "derived", "ASACLAS == '5-Moribund'."),
-    ("EXCL_ASA_UNASSIGNED", "Int8", "derived", "ASACLAS == 'None assigned'. An UNDOCUMENTED exclusion in the plan prose that the plan's own numbers require; CLAUDE.md 9.15 makes it its own STROBE box."),
+    ("EXCL_ASA_UNASSIGNED", "Int8", "derived", "ASACLAS == 'None assigned'. An UNDOCUMENTED exclusion in the original specification's prose that its own numbers require; it gets its own STROBE box."),
     ("EXCL_PRESEPSIS", "Int8", "derived", "PRSEPIS != 'None'. The literal string 'None' means NO sepsis."),
     ("STEP_ELECTIVE", "Int8", "derived", "Reached the elective rung of the ladder."),
     ("STEP_EXCLUSIONS", "Int8", "derived", "Reached the post-procedure-exclusion rung."),
     ("STEP_ANALYTIC", "Int8", "derived", "In the analytic cohort. Always 1 in cohort_analytic.parquet."),
-    ("HEMATOMA", "Int8", "derived", f"PRIMARY OUTCOME. Union of reoperation CPT, ICD-9 and ICD-10 arms, reoperation SLOT 1 only, UNGATED across all years. Seroma codes excluded. The ICD-10 code set is cpt_acdf.HEMATOMA_DEFINITION = {CPT.HEMATOMA_DEFINITION} ({CPT.HEMATOMA_ICD10_VARIANTS[CPT.HEMATOMA_DEFINITION]['label']}); see cpt_acdf section 5a for why the original set was corrected and what each variant measures."),
-    # CLAUDE.md hard rule 5: not one code literal, including in a description string. The
+    ("HEMATOMA", "Int8", "derived", f"PRIMARY OUTCOME. Union of reoperation CPT, ICD-9 and ICD-10 arms, reoperation SLOT 1 only, UNGATED across all years. Seroma codes excluded. The ICD-10 code set is cpt_acdf.HEMATOMA_DEFINITION = {CPT.HEMATOMA_DEFINITION} ({CPT.HEMATOMA_ICD10_VARIANTS[CPT.HEMATOMA_DEFINITION]['label']}); see cpt_acdf note 5a for why the original set was corrected and what each variant measures."),
+    # Not one code literal, including in a description string. The
     # differences between the three pre-specified code sets are RENDERED from cpt_acdf, so a
     # code can only ever be typed once, in the module that owns the taxonomy.
     ("HEMATOMA_V0", "Int8", "derived", f"SENSITIVITY. The same union under the ORIGINAL ICD-10 code set. Relative to the primary set it CARRIED {icd_list(_variant_extra('V0'), ', ') or 'no additional codes'} (one of which is not an ICD-10-CM code in any fiscal year and the other is accidental puncture and laceration, not a bleeding code), it LACKED the postprocedural-hemorrhage arm {icd_list(_variant_missing('V0'), ', ') or 'none'}, and its seroma guard did not hold {icd_list(_variant_guard_gap('V0'), ', ') or 'any additional code'}. Published as a named sensitivity row, never as the primary outcome."),
@@ -2583,25 +2582,25 @@ SCHEMA_SPEC = [
     ("REINTUBATION", "Int8", "derived", "REINTUB != 'No Complication'. Testing == 'Yes' yields all zeros."),
     ("VENT48", "Int8", "derived", "FAILWEAN != 'No Complication'."),
     ("PNEUMONIA", "Int8", "derived", "OUPNEUMO != 'No Complication'. EXCLUDED from AIRWAY_COMP."),
-    ("REOP_TRACH", "Int8", "derived", f"CPT {CPT.TRACHEOSTOMY_CPT} in {CPT.HEMATOMA_CPT_COLUMN} (slot 1 only, the companion project's slot ruling). Exploratory marker with no literature precedent (the companion project's exploratory-marker ruling)."),
-    ("AIRWAY_COMP", "Int8", "derived", "CLAUDE.md 6.2: REINTUBATION OR VENT48 OR REOP_TRACH. Pneumonia is deliberately EXCLUDED."),
+    ("REOP_TRACH", "Int8", "derived", f"CPT {CPT.TRACHEOSTOMY_CPT} in {CPT.HEMATOMA_CPT_COLUMN} (slot 1 only, as in the companion project). Exploratory marker with no literature precedent (as in the companion project)."),
+    ("AIRWAY_COMP", "Int8", "derived", "REINTUBATION OR VENT48 OR REOP_TRACH. Pneumonia is deliberately EXCLUDED."),
     ("READMIT_UNPLANNED", "Int8", "derived", "UNPLANNEDREADMISSION1 == 'Yes'. That column is populated only when READMISSION1 == 'Yes', so NULL means no readmission, not 'not unplanned'."),
-    ("MORT30", "Int8", "derived", "PRIMARY 30-day mortality. There is NO DEATH column (CLAUDE.md 9.4). 1 if DOPERTOD (days from operation to death) is present. DOPERTOD is VERIFIED at build time to lie within [0, 30] and the build STOPS if it ever does not, so this column really is a 30-day flag. CLAUDE.md 9.4."),
-    ("MORT_ANY_RECORDED", "Int8", "derived", "SENSITIVITY ONLY, and NEVER to be called 30-day mortality. 1 if DOPERTOD is present OR YRDEATH is present. YRDEATH is a YEAR and is NOT window-bounded: among the cases it alone flags, one died on postoperative day 33 during the index stay and one was discharged ALIVE on day 41. Report it beside MORT30 and state the difference (CLAUDE.md 9.4)."),
+    ("MORT30", "Int8", "derived", "PRIMARY 30-day mortality. There is NO DEATH column. 1 if DOPERTOD (days from operation to death) is present. DOPERTOD is VERIFIED at build time to lie within [0, 30] and the build STOPS if it ever does not, so this column really is a 30-day flag."),
+    ("MORT_ANY_RECORDED", "Int8", "derived", "SENSITIVITY ONLY, and NEVER to be called 30-day mortality. 1 if DOPERTOD is present OR YRDEATH is present. YRDEATH is a YEAR and is NOT window-bounded: among the cases it alone flags, one died on postoperative day 33 during the index stay and one was discharged ALIVE on day 41. Report it beside MORT30 and state the difference."),
     ("LOS_POSTOP", "float64", "derived", "DOPTODIS, days from operation to discharge = TRUE postoperative length of stay, and the PRIMARY length-of-stay field for this project. It is NOT range-limited to 30 days: a stay longer than the follow-up window is real and truncating it would corrupt the discharge-timing analysis. The billing setting INOUT is never used as a length of stay."),
     ("DISCHDEST", "str", "raw", "Fourteen levels observed in this cohort; the vocabulary swaps completely at 2021."),
     ("DEST_CAT", "str", "derived", "'Home' / 'Facility' / 'Other' from variable_dict.DISCHDEST_LEVEL_MAP, an explicit map covering BOTH vocabularies and published as supplementary table S1. 'Facility Which was Home' maps to Facility, NOT Home, and substring-matching the word Home would get that wrong. An unmapped level RAISES; a blank returns the empty string."),
-    ("NONHOME_DISCH", "Int8", "derived", "1 if DEST_CAT == 'Facility', 0 if 'Home', MISSING for 'Other' (against medical advice, expired, unknown) and for a missing destination. HAS A 2021 ERA BREAK and carries NO trend claim (CLAUDE.md 9.6): the rate steps down as DISCHDEST collapses from seven facility levels to two. Measured per-era rates are in notes_02.md section 5 and in results_02.json under nonhome.era_*."),
+    ("NONHOME_DISCH", "Int8", "derived", "1 if DEST_CAT == 'Facility', 0 if 'Home', MISSING for 'Other' (against medical advice, expired, unknown) and for a missing destination. HAS A 2021 ERA BREAK and carries NO trend claim: the rate steps down as DISCHDEST collapses from seven facility levels to two. Measured per-era rates are in the step's notes file (part 5) and in results_02.json under nonhome.era_*."),
     ("DYSPHAGIA_READMIT", "Int8", "derived", f"{icd_list(CPT.DYSPHAGIA_ICD10_PREFIXES)} family prefix match on {CPT.DYSPHAGIA_READMISSION_ICD10_COLUMN} (slot 1). ICD-10 only, so the denominator is 2014-2024."),
     ("DYSPHAGIA_REOP", "Int8", "derived", f"{icd_list(CPT.DYSPHAGIA_ICD10_PREFIXES)} family prefix match on {CPT.DYSPHAGIA_REOPERATION_ICD10_COLUMN} (slot 1)."),
     ("DYSPHAGIA_ANY", "Int8", "derived", "DYSPHAGIA_READMIT OR DYSPHAGIA_REOP."),
     ("MODEL_COMPLETE", "Int8", "derived", f"PORTED COMPLETENESS FLAG, NOT A MODEL. Complete on all {len(VD.MODEL_COMPLETE_TERMS)} columns of variable_dict.MODEL_COMPLETE_TERMS ({', '.join(VD.MODEL_COMPLETE_TERMS)}). The parent computed it from a constant named PRIMARY_MODEL_TERMS, which is deleted here because this project fits no hematoma risk model; the roster is the same six columns in the same order, so the flag is byte-identical and the two cohorts do not fork. Read it only to reproduce that flag; fit nothing on it."),
-    ("LAB_COMPLETE", "Int8", "derived", "PRINR, PRPLATE and PRPTT all measured. PRPTT is the binding constraint, not INR. PORTED; never read by this manuscript."),
+    ("LAB_COMPLETE", "Int8", "derived", "PRINR, PRPLATE and PRPTT all measured. PRPTT is the limiting measurement, not INR. PORTED; never read by this manuscript."),
     ("INR_MEASURED", "Int8", "derived", "PRINR measured. PORTED; never read by this manuscript."),
-    # ---------------- NEW IN THIS PROJECT (.build_facts.md 5.2) ----------------
+    # ---------------- NEW IN THIS PROJECT ----------------
     ("INOUT", "str", "raw", "BILLING setting, two levels, Inpatient and Outpatient. It is NOT a discharge measure and never a length of stay: confusing the two is the measurement error this paper documents. Mapped through an explicit table in variable_dict; an unmapped level RAISES and the recode is NULL-safe."),
     ("INOUT_OUTPT", "Int8", "derived", "1 where the billing setting is outpatient, 0 where inpatient, MISSING otherwise. From variable_dict.inout_flag."),
-    ("LOS_POSTOP_CHECK", "float64", "derived", "TOTHLOS minus HTOODAY, the INDEPENDENT cross-check on postoperative length of stay (CLAUDE.md 8.7). NEVER the analysis variable; LOS_POSTOP is."),
+    ("LOS_POSTOP_CHECK", "float64", "derived", "TOTHLOS minus HTOODAY, the INDEPENDENT cross-check on postoperative length of stay. NEVER the analysis variable; LOS_POSTOP is."),
     ("LOS_POSTOP_AGREE", "Int8", "derived", "1 where LOS_POSTOP equals LOS_POSTOP_CHECK, 0 where both are present and they differ, MISSING where either is missing."),
     ("LOS_CAT", "str", "derived", "'0' / '1' / '>=2' postoperative nights from LOS_POSTOP; the EMPTY STRING where LOS_POSTOP is missing. Table 1 stratum. Note that pretty_level returns an empty string rather than a missing-value label for the blank, so a step displaying this column must route the missing stratum explicitly."),
     ("SAMEDAY_DISCH", "Int8", "derived", "1 where postoperative length of stay is 0 days, that is TRUE same-day discharge. MISSING where the length of stay is missing. This is the trend definition, and it is derived from the length-of-stay field and never from the billing setting. It is a LENGTH-OF-STAY statement, not a destination statement: a small number of these patients did not go home, having an expired discharge destination, a recorded death within 30 days, or a still-in-hospital flag. The definition is deliberately unchanged because 05_inout.py needs the raw form; the contamination counts are published under losfield.sameday_disch_* and 05 must exclude them explicitly and state the exclusion."),
@@ -2650,8 +2649,8 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         "# cohort_schema.md -- the frozen analytic dataset",
         "",
         "Written by `02_build_cohort.py`. **`derived/cohort_analytic.parquet` is FROZEN "
-        "after this step.** Every downstream step reads it and never re-derives a cohort "
-        "(`CLAUDE.md` 4.1). If a column you need is not here, that is a bug in `02`, not a "
+        "after this step.** Every downstream step reads it and never re-derives a cohort. "
+        "If a column you need is not here, that is a bug in `02`, not a "
         "licence to compute it locally.",
         "",
         f"* `derived/cohort_analytic.parquet` -- **n = {results['cohort.analytic.n']:,}**, "
@@ -2687,8 +2686,8 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         "",
         f"{len(passthrough)} further columns arrive from the export bundle unchanged "
         "(whitespace-stripped; the date/day/lab columns numerically coerced) and are "
-        "carried so a reviewer request cannot force a re-export. They are NOT part of the "
-        "plan's analysis and must not appear in a table unless asked for.",
+        "carried so a later request cannot force a re-export. They are NOT part of the "
+        "analysis and must not appear in a table unless asked for.",
         "",
         "```",
     ]
@@ -2699,8 +2698,8 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         "",
         "## Decisions this file MADE rather than inherited",
         "",
-        "Each of these was under-specified by the plan and by every handoff note. They are "
-        "listed so a reviewer can challenge them, and repeated in `derived/notes_02.md`.",
+        "Each of these was under-specified by the original specification and by every earlier note. They are "
+        "listed so that a reader can challenge them, and repeated in the step's notes file.",
         "",
         f"1. **THE TIMING-FIELD HANDLING RULE.** {TIMING_RANGE_RULE} Measured on the "
         f"analytic cohort, **{results['timingfield.total_dropped_by_range_rule_n']} values "
@@ -2712,11 +2711,11 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         f"window-bounded: `LOS_POSTOP` runs to "
         f"{results['losfield.doptodis_max']:.0f} days and truncating it would corrupt the "
         f"discharge-timing analysis.",
-        f"2. **The tie convention is LOCKED** (`CLAUDE.md` 6.3): "
+        f"2. **The tie convention is LOCKED**: "
         f"`POSTDISCH = (POD > LOS_POSTOP)`, so an event on the same postoperative day as "
         f"discharge counts as PRE-discharge. Only this convention is materialised; the "
         f"opposite one is a required sensitivity and `04_postdischarge.py` computes it "
-        f"inline from the frozen columns, which `CLAUDE.md` 4.1 grants as its single "
+        f"inline from the frozen columns, which is its single "
         f"explicit exception.",
         f"3. **Every `POD_*` column is masked by its own event flag.** A days-to-event value "
         f"present on a row whose event flag is negative is counted and published under "
@@ -2739,14 +2738,14 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         "8. **`ANEMIA` uses the WHO sex-specific hematocrit thresholds** (39% men, 36% "
         "women), so it is undefined for non-binary sex.",
         f"9. **`MORT30` is `DOPERTOD`-based ({results['derived.mort30.n']}), not the "
-        f"`DOPERTOD` OR `YRDEATH` union ({results['derived.mort_any.n']})**, per "
-        f"`CLAUDE.md` 9.4. `DOPERTOD` is verified every run to lie within [0, 30]; "
+        f"`DOPERTOD` OR `YRDEATH` union ({results['derived.mort_any.n']})**. "
+        f"`DOPERTOD` is verified every run to lie within [0, 30]; "
         f"`YRDEATH` is a year and is not window-bounded. The union is materialised as "
         f"`MORT_ANY_RECORDED` and is a SENSITIVITY column that is never called 30-day "
         f"mortality.",
         f"10. **Both fusion-level per-level terms are materialised and NEITHER is fitted "
         f"here**: `LEVELS_PER_LEVEL` uncapped and `LEVELS_PER_LEVEL_CAP3` capped at "
-        f"{LEVELS_CAP}. This project fits no hematoma risk model at all (`CLAUDE.md` 6.6).",
+        f"{LEVELS_CAP}. This project fits no hematoma risk model at all.",
         "11. **`COAG_BURDEN_N` is defined only where `LAB_COMPLETE`.** An unmeasured lab is "
         "not a normal lab. PORTED; never read by this manuscript.",
         "12. **`NONHOME_DISCH` is missing, not 0, for `DEST_CAT == 'Other'`** (against "
@@ -2757,7 +2756,7 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         "`variable_dict.FEATURE_PRETTY` declares each a model feature and none has a "
         "derived twin. Every other raw column keeps its NSQIP text.",
         f"14. **`AGE_CAT` cut points** are `{'`, `'.join(VD.AGE_CAT_ORDER)}`, chosen a "
-        f"priori and locked before any curve was fitted (`CLAUDE.md` 6.5).",
+        f"priori and locked before any curve was fitted.",
         f"15. **The three airway and pneumonia days-to-event fields are numerically "
         f"coerced here**, where the parent left them as passthrough text: this project "
         f"times all eight outcomes and the parent timed none.",
@@ -2767,7 +2766,7 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
         f"a patient not so flagged. No count is reclassified and no rung moves. The split is "
         f"published under `timingfield.<outcome>.lost_*` because a patient never discharged "
         f"inside the follow-up window cannot have had the event after a discharge that did "
-        f"not occur, which makes `PLAN.md` 6.2's unconditional extreme structurally "
+        f"not occur, which makes the specification's unconditional extreme structurally "
         f"impossible for those rows. **`04_postdischarge.py` reports the "
         f"`STILLINHOSP`-conditioned bound as primary** and may show the unconditional one "
         f"only beside it, labelled as such.",
@@ -2778,9 +2777,9 @@ def write_schema_md(d_analytic: pd.DataFrame, results: dict) -> None:
 
 def _notes_header(r: dict) -> str:
     hem_def = r["cohort.hematoma.definition"]
-    return f"""# notes_02.md -- handoff from `02_build_cohort.py`
+    return f"""# Notes from `02_build_cohort.py`
 
-Written 2026-07-31. Owner: **T4 (cohort)**. Owned files: `02_build_cohort.py`,
+Written 2026-07-31. Files of this step: `02_build_cohort.py`,
 `derived/cohort_analytic.parquet`, `derived/cohort_identified.parquet`,
 `derived/cohort_schema.md`, `derived/notes_02.md`, `outputs/results_02.json`. Nothing else
 was created or modified; the warehouse was not read at all (this step reads the export
@@ -2789,7 +2788,7 @@ bundle `01_export_cohort.py` already wrote).
 **Read `derived/cohort_schema.md` first.** It is the column dictionary. This file is the
 part `03_timing.py`, `04_postdischarge.py`, `05_inout.py` and `06_window.py` have to act on.
 
-This builder is a PORT of `projects/ACDF-hematoma/v1/02_build_cohort.py`, copied first and
+This builder is a PORT of the companion hematoma project's `02_build_cohort.py`, copied first and
 then extended, so the cohort ladder logic arrived byte-identical and cannot have broken
 through transcription error. Everything added is a new derived column or a new measurement.
 
@@ -2800,8 +2799,8 @@ through transcription error. Everything added is a new derived column or a new m
 | Gate | What it claims | Verdict |
 |---|---|---|
 | **B** (default, PRIMARY) | the corrected cohort ladder | **{'PASS' if r['gate.b.pass'] else 'FAIL'}** |
-| **A** (`--replicate-plan`) | the plan's strict age cast, reconciliation only | **{'PASS' if r['gate.a.pass'] else 'FAIL'}** |
-| **1** (CLAUDE.md 8.3) | adding the billing column moved no row count | **{'PASS' if r['gate.1.pass'] else 'FAIL'}** |
+| **A** (`--replicate-plan`) | the original specification's strict age cast, reconciliation only | **{'PASS' if r['gate.a.pass'] else 'FAIL'}** |
+| **1** | adding the billing column moved no row count | **{'PASS' if r['gate.1.pass'] else 'FAIL'}** |
 
 | Step | Gate B, PRIMARY | events | Gate A, reconciliation | events |
 |---|---:|---:|---:|---:|
@@ -2813,8 +2812,8 @@ through transcription error. Everything added is a new derived column or a new m
 Every one of those sixteen counts is asserted against `cpt_acdf.COHORT_LADDER_N`,
 `COHORT_LADDER_N_PLAN` and `COHORT_LADDER_EVENTS`. **No count is retyped anywhere in this
 step.** The event ladder follows `cpt_acdf.HEMATOMA_DEFINITION`, which is
-**{hem_def}**; `PLAN.md` prints the superseded V0 ladder for the reason `CLAUDE.md`
-section 0 documents, and importing lands on the current definition automatically. Analytic
+**{hem_def}**; the original specification printed the superseded V0 ladder
+(see note 5a in cpt_acdf), and importing lands on the current definition automatically. Analytic
 hematoma rate {r['cohort.analytic.rate_pct']:.3f}% on Gate B. The event counts are identical
 on both ladders because the {r['cohort.nonagenarian_delta.identified']} restored
 top-coded-age patients carry zero hematoma events.
@@ -2845,7 +2844,7 @@ supplement and never to the manuscript body.
 4. **Numeric.** The ladder landed on the pinned constants with
    **{r['gate.1.rows_moved']} rows moved**.
 
-T1 had already proved the stronger export-layer claim: {r['gate.1.export_proof']}
+The stronger export-layer claim had already been proved: {r['gate.1.export_proof']}
 
 STROBE boxes for Figure 1, measured on the Gate B ladder:
 
@@ -2861,15 +2860,15 @@ STROBE boxes for Figure 1, measured on the Gate B ladder:
 
 The three procedure boxes overlap (a case can carry two exclusion codes) and remove
 {r['cohort.flow.excl_procedure_any.n']:,} cases between them. **The final rung's arithmetic
-does not close, and it must be stated rather than adjusted** (`CLAUDE.md` 9.16): the rung
+does not close, and it must be stated rather than adjusted**: the rung
 difference is {r['cohort.flow.exclusion_delta']}, the three final boxes sum to
 {r['cohort.flow.exclusion_boxes_sum']}, so **{r['cohort.flow.exclusion_overlap_n']}** case
 meets more than one exclusion criterion. Do not adjust a count to make it close. The
-ASA-not-assigned box is an exclusion the plan's prose does not mention and its own numbers
+ASA-not-assigned box is an exclusion the original specification's prose does not mention and its own numbers
 require; it gets its own box with its own n.
 
-**Binding on `07` and `08`: build Figure 1 and the Methods exclusion sentence from
-`outputs/results_02.json` (`cohort.flow.*`), never from a handoff note.** Every box above is
+**Rule for `07` and `08`: build Figure 1 and the Methods exclusion sentence from
+`outputs/results_02.json` (`cohort.flow.*`), never from a notes file.** Every box above is
 rendered from that fragment, and this project already has two recorded instances of a count
 being copied wrong into a report while the artefact was right. The keys are
 `cohort.flow.excl_asa5.n`, `cohort.flow.excl_asa_unassigned.n`,
@@ -2878,7 +2877,7 @@ being copied wrong into a report while the artefact was right. The keys are
 
 ---
 
-## 1. THE PRE-FLIGHT DATA CHECK (`CLAUDE.md` 8.6), before any curve is drawn
+## 1. THE PRE-FLIGHT DATA CHECK, before any curve is drawn
 
 ### 1.1 The complete observed value set of every timing field
 
@@ -3001,18 +3000,18 @@ project exists to do.
 ### 1.3 Conditional missingness: the number that matters
 
 For every timed outcome, the missingness of the days-to-event field **given that the event
-flag is positive**. The database-wide percentages in `PLAN.md` 2.4 are EVENT RATES, not
+flag is positive**. The database-wide percentages quoted earlier are EVENT RATES, not
 missingness rates, and the manuscript must not confuse the two.
 
 | Outcome | flag | events (row 1) | day present (row 2) | day missing | % missing given the event | length of stay present (row 3) | both (row 4) | lost rows 1 to 4 | bounding needed |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|
 """ + "\n".join(ladder) + f"""
 
-Rows 1 to 4 are the `PLAN.md` 6.2 denominator ladder. `04_postdischarge.py` owns the
+Rows 1 to 4 are the denominator ladder. `04_postdischarge.py` owns the
 published version of this table; the copy here is `02`'s own measurement and is a
 cross-check, not a duplicate. **Bounding is required for any outcome losing more than
-{r['timingfield.bounding_threshold_pct']:.0f}% of its events between rows 1 and 4**
-(`PLAN.md` 6.2), and the final column above says which.
+{r['timingfield.bounding_threshold_pct']:.0f}% of its events between rows 1 and 4**,
+and the final column above says which.
 
 ### 1.4 WHY each event is lost between rows 1 and 4, and what `04` may bound with
 
@@ -3042,13 +3041,13 @@ unplanned readmission loses all {r['timingfield.readmit.lost_day_missing_n']} of
 that way. A missing day is not a still-in-hospital fact, so those events stay inside both
 bounds; that is why the conditioned bound is not zero for those four outcomes.
 
-**Why it matters, and it is binding on `04`.** The still-in-hospital flag means the patient
+**Why it matters, and it applies to `04`.** The still-in-hospital flag means the patient
 was still admitted beyond postoperative day 30, so the patient was never discharged inside
 the follow-up window at all. An event on such a row **cannot** have occurred after that
-patient's own discharge, because there was no discharge. `PLAN.md` 6.2's "all missing events
+patient's own discharge, because there was no discharge. The specification's "all missing events
 post-discharge" extreme is therefore not merely conservative for these rows, it is
 **structurally impossible**, and printing the naive interval would make it materially wider
-than the data supports. `PLAN.md` 6.2 also says an interval wide enough to change the
+than the data supports. The specification also says an interval wide enough to change the
 clinical message replaces the point estimate, so a spuriously wide one does real harm.
 
 > **`04` must report the `STILLINHOSP`-conditioned bound as PRIMARY, and may show the naive
@@ -3058,7 +3057,7 @@ The two right-hand columns are the counts each bound may move: the naive one is 
 loss, the conditioned one is the loss that could genuinely be post-discharge, namely the
 missing-day arm plus any length-of-stay loss on a patient not flagged still in hospital.
 Every number here is published under `timingfield.<outcome>.lost_*` and
-`timingfield.<outcome>.bound_*`; **re-derive rather than copy** (`CLAUDE.md` 8.5).
+`timingfield.<outcome>.bound_*`; **re-derive rather than copy**.
 
 ### 1.5 Days-to-event values on rows whose event flag is NEGATIVE
 
@@ -3098,7 +3097,7 @@ def _notes_checks(r: dict) -> str:
     return f"""
 ---
 
-## 2. Length-of-stay field agreement (`CLAUDE.md` 8.7), before either field is used
+## 2. Length-of-stay field agreement, before either field is used
 
 `LOS_POSTOP` is sourced from `DOPTODIS`: direct, present in every study year, no arithmetic.
 `TOTHLOS - HTOODAY` is the independent cross-check and is materialised as
@@ -3116,8 +3115,8 @@ def _notes_checks(r: dict) -> str:
 Disagreement rate {r['losfield.disagree_pct_of_both_present']:.3f}% of the rows where both
 are computable, {same_delta} (minimum delta
 {r['losfield.disagree_min_delta']:.0f}, maximum {r['losfield.disagree_max_delta']:.0f}): the
-subtraction reads longer than the direct field. `CLAUDE.md` 8.7 records the parent's
-measurement as {r['losfield.parent_disagree_n']} disagreements on
+subtraction reads longer than the direct field. The parent's
+measurement was {r['losfield.parent_disagree_n']} disagreements on
 {r['losfield.parent_both_present']:,} analytic rows where both are present. Re-verified
 here: **{los_ok}**.
 
@@ -3159,7 +3158,7 @@ The lengths of stay of 30 days or fewer are
 {r['losfield.los_gt30_stillinhosp_n']} carry the flag, so the flag and a long stay are not
 the same population in either direction.
 
-**This does not weaken the bounding argument in section 1.4, it is what makes it
+**This does not weaken the bounding argument in part 1.4, it is what makes it
 measurable.** The flag says the patient was still admitted beyond day 30, so no discharge
 occurred inside the window; the patients who also carry a length-of-stay value are simply
 the ones whose event day and length of stay are both recorded, and all
@@ -3178,7 +3177,7 @@ same-day-discharge RATE without knowing what is inside it.
 | `SAMEDAY_DISCH` = 1 | {r['losfield.sameday_disch_n']:,} | {r['losfield.sameday_disch_expired_dest_n']} | {r['losfield.sameday_disch_mort30_n']} | {r['losfield.sameday_disch_stillinhosp_n']} | **{r['losfield.sameday_disch_not_discharged_home_any_n']}** |
 | `DISCH_BY_POD1` = 1 | {r['losfield.disch_by_pod1_n']:,} | {r['losfield.disch_by_pod1_expired_dest_n']} | {r['losfield.disch_by_pod1_mort30_n']} | {r['losfield.disch_by_pod1_stillinhosp_n']} | **{r['losfield.disch_by_pod1_not_discharged_home_any_n']}** |
 
-> **Binding on `05_inout.py`: exclude these patients explicitly and say so**, rather than
+> **Rule for `05_inout.py`: exclude these patients explicitly and say so**, rather than
 > reporting a same-day-discharge rate that counts deaths as discharges. A death on
 > postoperative day 0 is not a discharge, and a patient still admitted beyond day 30 has not
 > been discharged at all. The counts are keys under `losfield.*`; re-derive them rather than
@@ -3186,7 +3185,7 @@ same-day-discharge RATE without knowing what is inside it.
 
 ---
 
-## 3. `DISCHDEST = 'Expired'` reconciled against the death day (`CLAUDE.md` 8.8)
+## 3. `DISCHDEST = 'Expired'` reconciled against the death day
 
 A patient who expired has no discharge day. They are the COMPETING EVENT in the estimator,
 not a same-day discharge, and a length-of-stay field read naively would fold them into the
@@ -3219,14 +3218,14 @@ Destinations recorded for patients who died in the window:
 destination is expired but who carries no death day is an ascertainment gap in the death
 field. A patient with a recorded death day whose destination is not expired died AFTER
 discharge, which is exactly what a 30-day follow-up window is supposed to capture and is
-the reason death is the competing event rather than an administrative censoring. **Binding
-on `03` and `06`: expired patients must enter the estimator as the competing event and must
-never be counted as discharges.** Binding on `05`: any same-day-discharge count must
+the reason death is the competing event rather than an administrative censoring. **Rule
+for `03` and `06`: expired patients must enter the estimator as the competing event and must
+never be counted as discharges.** Rule for `05`: any same-day-discharge count must
 exclude them, and the count above is how many there are.
 
 ---
 
-## 4. Second events, only partially timed (`CLAUDE.md` 9.18)
+## 4. Second events, only partially timed
 
 All analyses are **time-to-first-event**, pre-specified. NSQIP times occurrence 1 in every
 family, plus a second reoperation and a second through fifth readmission, and nothing
@@ -3249,7 +3248,7 @@ whose timing is only partially observed.
 
 ## 5. The composite outcomes, and the tracheostomy invariant
 
-Composite airway morbidity (`CLAUDE.md` 6.2), analytic cohort: unplanned reintubation
+Composite airway morbidity, analytic cohort: unplanned reintubation
 {r['derived.airway.reintubation_n']}, ventilator beyond 48 hours
 {r['derived.airway.vent48_n']}, reoperative tracheostomy (slot 1)
 {r['derived.reop_trach.slot1_n']}, **composite {r['derived.airway.composite_n']}**.
@@ -3300,7 +3299,7 @@ disagree.
 
 ---
 
-## 6. Ported cross-checks the constitution asks `02` to report
+## 6. Ported cross-checks that `02` reports
 
 **30-day mortality.** There is no death column in the warehouse, so mortality is built from
 the death-day field and the death-year field. `MORT30` is the death-day flag and is verified
@@ -3331,7 +3330,7 @@ day {exp_days} and the other was discharged ALIVE on day {alive_days}.
 ({r['derived.dischdest.facility_which_was_home_n']} cases) is counted as **Facility**, not
 Home; substring-matching the word Home would get that wrong.
 
-**`NONHOME_DISCH` has a 2021 era break and carries NO trend claim** (`CLAUDE.md` 9.6):
+**`NONHOME_DISCH` has a 2021 era break and carries NO trend claim**:
 
 | Era | cases | denominator | non-home | rate | destination levels | of which facility |
 |---|---:|---:|---:|---:|---:|---:|
@@ -3342,7 +3341,7 @@ A {r['derived.nonhome.era_break_relative_drop_pct']:.0f}% relative drop, coincid
 with the destination vocabulary collapsing from
 {r['derived.nonhome.era_2012_2020.facility_levels']} facility levels to
 {r['derived.nonhome.era_2021_2024.facility_levels']}. **Report destination by year as
-`PLAN.md` 6.3 requires, but make no claim that non-home discharge declined.**
+the specification requires, but make no claim that non-home discharge declined.**
 
 **The billing label on the analytic cohort.** Outpatient
 {r['inoutfield.outpatient_n']:,} ({r['inoutfield.outpatient_pct']:.2f}%), inpatient
@@ -3373,8 +3372,8 @@ def _notes_handoff(r: dict) -> str:
 
 ## 7. GATE 2 FOREWARNING: where the carried-over 41.3% comes from
 
-`PLAN.md` 13 lists the denominator behind the carried-over "41.3% of hematoma reoperations
-occur after that patient's own discharge" as an OPEN ITEM: the parent never recorded it.
+The denominator behind the carried-over "41.3% of hematoma reoperations
+occur after that patient's own discharge" was an OPEN ITEM: the parent never recorded it.
 The frozen columns answer it directly, so it is measured here rather than left for a later
 step to rediscover. **`04_postdischarge.py` owns the published figure and must re-derive it;
 these are `02`'s own measurements and are published under a data-quality namespace
@@ -3396,18 +3395,17 @@ reproduces = **{r['dq.carryover.postdisch.reproduces_to_one_decimal']}**. Under 
 superseded code set the same rung gives
 {r['dq.carryover.postdisch.v0.identified.pct']:.2f}%.
 
-**Consequence, and it is a real one.** `CLAUDE.md` 4.4 rules that every analysis in this
+**Consequence, and it is a real one.** Every analysis in this
 manuscript is reported on the ANALYTIC cohort, so the published post-discharge fraction for
 hematoma will be **{r['dq.carryover.postdisch.v2.analytic.pct']:.2f}%
 ({r['dq.carryover.postdisch.v2.analytic.post_n']} of
 {r['dq.carryover.postdisch.v2.analytic.denominator']})**, about
 {abs(r['dq.carryover.postdisch.v2.analytic.pct'] - 41.3):.1f} percentage points above the
 carried-over figure. **That is not a discrepancy to reconcile away: it is the same measure
-on a different and correctly stated denominator**, and the resolution `PLAN.md` 13 asked for
+on a different and correctly stated denominator**, and the resolution that was asked for
 is exactly this. Report the analytic figure with its denominator, state that the
 carried-over figure was an identified-cohort number, and cite the published external
-estimate beside it rather than presenting either as confirming the other
-(`CLAUDE.md` 6a.2).
+estimate beside it rather than presenting either as confirming the other.
 
 The two companion carried-over figures behave the same way. Median postoperative day of the
 hematoma reoperation is **{r['dq.carryover.pod01.v2.analytic.median']:.0f}** on the analytic
@@ -3419,7 +3417,7 @@ both. The share on postoperative day 0 or 1 is
 {r['dq.carryover.pod01.plan_figure_pct']:.1f}%. **`03_timing.py` owns the published median
 and day 0 to 1 share; `04_postdischarge.py` owns the published post-discharge fraction.**
 Neither may copy the numbers above; re-derive them and report a mismatch rather than
-adopting or discarding one (`CLAUDE.md` 8.5).
+adopting or discarding one.
 
 ---
 
@@ -3442,36 +3440,36 @@ adopting or discarding one (`CLAUDE.md` 8.5).
 4. **The tie convention is frozen in the `POSTDISCH_*` columns**:
    `POSTDISCH = (POD > LOS_POSTOP)`, an event on the discharge day counts as PRE-discharge.
    `04_postdischarge.py` alone may compute the opposite convention inline from `POD_*` and
-   `LOS_POSTOP` (`CLAUDE.md` 4.1). Nothing else is exempt, and the opposite convention is
+   `LOS_POSTOP`. Nothing else is exempt, and the opposite convention is
    deliberately not materialised so it cannot be used by accident.
 5. **`TIMED_BOTH_*` is row 4 of the denominator ladder** and is defined conditional on the
    event: sum it for row 4, count its zeros for the loss between rows 1 and 4.
-6. **THE BOUNDING SENSITIVITY MUST BE CONDITIONED ON `STILLINHOSP`. Binding on `04`.**
+6. **THE BOUNDING SENSITIVITY MUST BE CONDITIONED ON `STILLINHOSP`. Applies to `04`.**
    Every event lost between rows 1 and 4 because the LENGTH OF STAY is missing belongs to a
    patient flagged still in hospital beyond 30 days, with zero exceptions on every outcome
    that loses any (`timingfield.loss_all_los_loss_is_stillinhosp` =
    {str(r['timingfield.loss_all_los_loss_is_stillinhosp']).upper()}), and such a patient was
    never discharged inside the window, so the event cannot be post-discharge. **Report the
    `STILLINHOSP`-conditioned bound as primary and show the naive unconditional bound only
-   beside it, labelled as the unconditional extreme** (section 1.4). The per-outcome counts
+   beside it, labelled as the unconditional extreme** (part 1.4). The per-outcome counts
    are `timingfield.<outcome>.lost_day_missing_n`, `.lost_los_missing_stillinhosp_n`,
    `.lost_los_missing_not_stillinhosp_n`, `.bound_unconditional_max_n` and
    `.bound_stillinhosp_conditioned_max_n`.
 7. **`STILLINHOSP` does NOT mean "no length of stay".** It is false for
    {r['losfield.stillinhosp_los_present_n']} of the {r['losfield.stillinhosp_yes_n']}
    flagged patients, and {r['losfield.stillinhosp_postdisch_observed_n']} of them are already
-   inside `04`'s row-4 denominators, all scored pre-discharge (section 2.1).
+   inside `04`'s row-4 denominators, all scored pre-discharge (part 2.1).
 8. **Readmission has `postdisch_eligible = False`.** Report its curve SHAPE, never its
    post-discharge fraction: the day is counted from the operation, so a readmission is a
    post-discharge event by construction for anyone who was discharged.
-9. **Expired patients are the competing event, never a same-day discharge** (section 3).
+9. **Expired patients are the competing event, never a same-day discharge** (part 3).
    {r['dq.expired.los_zero_n']} of them carry a length of stay of 0. More generally,
    **`SAMEDAY_DISCH` and `DISCH_BY_POD1` include patients who did not go home**:
    {r['losfield.sameday_disch_not_discharged_home_any_n']} and
    {r['losfield.disch_by_pod1_not_discharged_home_any_n']} respectively carry an expired
    destination, a recorded death or a still-in-hospital flag. The column definitions are
    deliberately unchanged; **`05` must exclude them explicitly and state the exclusion**
-   (section 2.2).
+   (part 2.2).
 10. **`LOS_CAT` writes the empty string where the length of stay is missing**
     ({r['losfield.los_cat.missing_n']} analytic cases), and `pretty_level` returns an empty
     string rather than a missing-value label for it. `05` must route that stratum explicitly
@@ -3487,8 +3485,8 @@ adopting or discarding one (`CLAUDE.md` 8.5).
     2012-2020 era and `ERA_ICD10` the 2016-2024 one.
 14. **`OPERYR` and `PUFYEAR` are the same column** by construction, both the warehouse year,
     asserted equal on every row. Use either; they cannot drift.
-15. **The coagulopathy, dysphagia and laboratory columns are materialised but forbidden.**
-    They exist so the two cohorts cannot fork (`CLAUDE.md` 7.1). No step here reads them,
+15. **The coagulopathy, dysphagia and laboratory columns are materialised but never analysed here.**
+    They exist so the two cohorts cannot fork. No step here reads them,
     and `02` publishes no count from them.
 16. **The pre-specification is published under `prespec.*`** so `verify_numbers.py` can
     assert nothing moved after the fact. Read the locked values from there rather than
@@ -3497,17 +3495,17 @@ adopting or discarding one (`CLAUDE.md` 8.5).
     `era.` to step 03, and a duplicate key across fragments raises at the merge even when
     the values agree. To use a number another step measured, read it back from the merged
     `outputs/results.json`.
-18. **Binding on `07` and `08`: build Figure 1 and the Methods exclusion sentence from
-    `outputs/results_02.json` (`cohort.flow.*`), never from a handoff note**, including this
-    one. Every count printed in section 0 above is rendered from that fragment. The exclusion
+18. **Rule for `07` and `08`: build Figure 1 and the Methods exclusion sentence from
+    `outputs/results_02.json` (`cohort.flow.*`), never from a notes file**, including this
+    one. Every count printed in part 0 above is rendered from that fragment. The exclusion
     boxes are {r['cohort.flow.excl_asa5.n']}, {r['cohort.flow.excl_asa_unassigned.n']} and
     {r['cohort.flow.excl_presepsis.n']}, summing to
     {r['cohort.flow.exclusion_boxes_sum']} against a rung difference of
     {r['cohort.flow.exclusion_delta']}, with an overlap of
     {r['cohort.flow.exclusion_overlap_n']}; read those five keys rather than these five
     numbers.
-19. **Every one of this step's nine namespaces now declares its own units**
-    (`.build_facts.md` 9.6, closed here). Each publishes `<namespace>.scale` as prose,
+19. **Every one of this step's nine namespaces now declares its own units**.
+    Each publishes `<namespace>.scale` as prose,
     `<namespace>.scale.families` and `<namespace>.scale.units` as two parallel
     machine-readable lists, and `<namespace>.scale.other_numeric_keys` as the catch-all, in
     the same shape `03`, `05` and `06` use. **{_scale_family_count()} families across {len(SCALE_DECLARATIONS)} namespaces,
@@ -3548,10 +3546,10 @@ The cohort ladder logic is byte-identical to the parent's. What changed:
   safe-discharge composite, the wider tracheostomy marker, the two era flags, and the three
   timing families.
 * **Dropped, with reason:** the parent's Gate D reconciliation and BMI-window sweep and its
-  coagulopathy-burden variants (both target figures printed in the parent's own plan, which
-  this project never quotes, and the burden rates are forbidden here in every form); the
+  coagulopathy-burden variants (both target figures printed in the parent's own specification, which
+  this project never quotes, and the burden rates are excluded here in every form); the
   parent's consequence-cascade mortality block and its dysphagia counts (the parent's
-  results, forbidden here); and the parent's seroma-guard reconstruction, which
+  results, excluded here); and the parent's seroma-guard reconstruction, which
   re-implements taxonomy internals that module's own self-test already covers. **None of
   these touches a cohort mask, and both ladders reproduce exactly.**
 * **Three days-to-event fields are now numerically coerced** rather than carried as
@@ -3565,10 +3563,10 @@ The cohort ladder logic is byte-identical to the parent's. What changed:
 def write_notes_md(results: dict) -> None:
     text = (_notes_header(results) + _notes_timing_tables(results)
             + _notes_checks(results) + _notes_handoff(results))
-    # CLAUDE.md hard rule 1. The constant is imported rather than written as a literal so a
+    # The constant is imported rather than written as a literal so a
     # repo-wide grep for U+2014 stays meaningful.
     if VD.EM_DASH in text:
-        raise SystemExit("[02] notes_02.md contains a literal em-dash (CLAUDE.md hard rule 1)")
+        raise SystemExit("[02] the notes file contains a literal em-dash")
     NOTES_MD.write_text(text)
 
 
@@ -3577,7 +3575,7 @@ def write_notes_md(results: dict) -> None:
 # 7. main
 # ===========================================================================
 def prespecification() -> dict:
-    """The LOCKED pre-specification (CLAUDE.md section 6, .build_facts.md section 2).
+    """The LOCKED pre-specification.
 
     Written into the fragment so `verify_numbers.py` can assert that nothing moved after the
     fact. Every value that exists as a contract constant is IMPORTED from `variable_dict`
@@ -3615,8 +3613,8 @@ def prespecification() -> dict:
             f"count"),
         "prespec.seed": int(VD.SEED),
         "prespec.bootstrap_replicates": 1000,
-        # .build_facts.md section 2's bootstrap row also locks WHAT is resampled. Without
-        # this key that half of the row has nothing to assert against.
+        # The locked uncertainty rule also fixes WHAT is resampled. Without
+        # this key that half of the rule has nothing to assert against.
         "prespec.bootstrap_resampling_unit": "patients resampled within stratum",
         "prespec.bothways_covariates": list(VD.BOTHWAYS_COVARIATES),
         "prespec.steroid_excluded": True,
@@ -3667,7 +3665,7 @@ def build_results(d, analytic, counts_b, counts_a, masks_b, masks_a, g1) -> dict
         results[f"gate.a.{step}.rate_pct"] = pct(ev2, n2)
         results[f"cohort.nonagenarian_delta.{step}"] = n - n2
     # COMPUTED, never a literal: the verdict is the same comparison `assert_ladder` makes,
-    # against the imported cpt_acdf constants, so the gate table in notes_02.md renders a
+    # against the imported cpt_acdf constants, so the gate table in the notes file renders a
     # measurement and can print FAIL. The hard assertion remains the stop condition.
     results["gate.b.pass"] = bool(ladder_verdict(
         counts_b, CPT.COHORT_LADDER_N, CPT.COHORT_LADDER_EVENTS))
@@ -3680,7 +3678,7 @@ def build_results(d, analytic, counts_b, counts_a, masks_b, masks_a, g1) -> dict
         "COHORT_LADDER_EVENTS. No count is retyped in this step, and the verdict key is "
         "computed from that comparison rather than written as a constant.")
     results["gate.a.note"] = (
-        "Reconciliation only. The delta is exactly the top-coded-age patients the plan's "
+        "Reconciliation only. The delta is exactly the top-coded-age patients the original specification's "
         "strict integer cast nulls, and it carries zero hematoma events. Its output belongs "
         "to the ascertainment supplement and never to the manuscript body.")
     results["cohort.hematoma.definition"] = CPT.HEMATOMA_DEFINITION
@@ -3701,7 +3699,7 @@ def build_results(d, analytic, counts_b, counts_a, masks_b, masks_a, g1) -> dict
                 raise SystemExit(
                     f"[02] outcome variant {variant} at step {step!r} measures {ev}, "
                     f"pinned at {CPT.COHORT_LADDER_EVENTS_BY_DEFINITION[variant][step]}. "
-                    f"CLAUDE.md 8.5: a mismatch is a stop condition, not a number to "
+                    f"A mismatch is a stop condition, not a number to "
                     f"overwrite."
                 )
             if int((masks_a[step] & flags).sum()) != ev:
@@ -3749,7 +3747,7 @@ def build_results(d, analytic, counts_b, counts_a, masks_b, masks_a, g1) -> dict
         k = int((masks_b["exclusions"] & _positive(d[col])).sum())
         results[f"cohort.flow.{name}.n"] = k
         final_boxes += k
-    # CLAUDE.md 9.16: the rung difference and the box sum differ by exactly the number of
+    # The rung difference and the box sum differ by exactly the number of
     # cases meeting more than one criterion. STATE the arithmetic; do NOT adjust a count.
     delta = CPT.COHORT_LADDER_N["exclusions"] - CPT.COHORT_LADDER_N["analytic"]
     results["cohort.flow.exclusion_delta"] = int(delta)
@@ -3857,7 +3855,7 @@ def clean_fragment(results: dict) -> dict:
         elif isinstance(v, (np.bool_,)):
             v = bool(v)
         if isinstance(v, float) and not math.isfinite(v):
-            v = None                       # JSON has no NaN; write null (notes_run_all.md 3)
+            v = None                       # JSON has no NaN; write null
         elif isinstance(v, (list, tuple)):
             items = []
             for item in v:
@@ -3897,7 +3895,7 @@ def main(argv=None) -> int:
         description="Recode the export bundle and freeze the analytic cohort.",
     )
     ap.add_argument("--replicate-plan", action="store_true",
-                    help="Gate A reconciliation: reproduce the plan's strict AGE cast. "
+                    help="Gate A reconciliation: reproduce the original specification's strict AGE cast. "
                          "Asserts, prints and WRITES NOTHING.")
     args = ap.parse_args(argv)
 
@@ -3937,7 +3935,7 @@ def main(argv=None) -> int:
     print("[02]   Gate B PASS -- all 8 counts exact.")
     print("")
     print_ladder(counts_a, CPT.COHORT_LADDER_N_PLAN, CPT.COHORT_LADDER_EVENTS,
-                 "Gate A ladder (plan's strict integer age cast, reconciliation)")
+                 "Gate A ladder (original specification's strict integer age cast, reconciliation)")
     assert_ladder(counts_a, CPT.COHORT_LADDER_N_PLAN, CPT.COHORT_LADDER_EVENTS, "Gate A")
     print("[02]   Gate A PASS -- all 8 counts exact.")
     print("")
@@ -3962,7 +3960,7 @@ def main(argv=None) -> int:
     # ================= default mode: freeze the artefacts =================
     if not g1["gate.1.pass"]:
         raise SystemExit(
-            "[02] GATE 1 FAILED. CLAUDE.md 8.3 makes this a stop condition. Nothing was "
+            "[02] GATE 1 FAILED. This is a stop condition. Nothing was "
             "written."
         )
 
@@ -3990,16 +3988,16 @@ def main(argv=None) -> int:
     results["dq.hematoma_pod.dropped_by_range_rule_n"] = raw_pod - use_pod
     results["dq.hematoma_pod.matches_parent_form"] = bool(raw_pod == use_pod)
 
-    # .build_facts.md 9.6: declare the unit of every family this step publishes, LAST, so
+    # Declare the unit of every family this step publishes, LAST, so
     # the coverage assertion sees the complete fragment. Additive metadata only; nothing
     # above is read, renamed or recomputed here.
     n_families = assert_scale_coverage(results)
     publish_scale_declarations(results)
     print(f"[02] scale declarations: {len(SCALE_DECLARATIONS)} namespaces, {n_families} "
-          f"families, each scoped to its own namespace (.build_facts.md 9.6)")
+          f"families, each scoped to its own namespace")
     print("")
 
-    print("[02] pre-flight data check (CLAUDE.md 8.6)")
+    print("[02] pre-flight data check")
     print(f"[02]   days-to-event fields audited: {len(TIMING_FIELDS)}; "
           f"values outside 0-30 or non-integer: "
           f"{results['timingfield.total_dropped_by_range_rule_n']}; "
@@ -4067,15 +4065,15 @@ def main(argv=None) -> int:
                   f"analytic cohort.")
     else:
         print("[02]   BLOCKER: THE TRACHEOSTOMY INVARIANT NO LONGER HOLDS ON THE ANALYTIC "
-              "COHORT. CLAUDE.md 6.2 requires the airway composite to be identical whether "
+              "COHORT. The airway composite must be identical whether "
               "the tracheostomy arm reads slot 1 or slots 1+2, and it is not. Stop and "
-              "re-rule before any curve is fitted. The composite has NOT been changed; "
+              "decide again before any curve is fitted. The composite has NOT been changed; "
               f"{results['derived.trach.invariant_rows_differing_analytic']} analytic rows "
               "differ.")
     if not results["cohort.flow.exclusion_arithmetic_reproduces"]:
         print(f"[02]   NOTE: the exclusion boxes sum to "
-              f"{results['cohort.flow.exclusion_boxes_sum']}, where CLAUDE.md 9.16 records "
-              f"{CONSTITUTION_EXCLUSION_BOX_SUM}. Reported, not adjusted (CLAUDE.md 8.5).")
+              f"{results['cohort.flow.exclusion_boxes_sum']}, where the carried-over figure is "
+              f"{CONSTITUTION_EXCLUSION_BOX_SUM}. Reported, not adjusted.")
     print("")
 
     analytic.to_parquet(ANALYTIC_PARQUET, index=False)
@@ -4112,8 +4110,7 @@ def main(argv=None) -> int:
     missing_contract = [c for c in contract if c not in back.columns]
     if missing_contract:
         raise SystemExit(
-            f"[02] the frozen parquet is missing contracted columns {missing_contract} "
-            f"(.build_facts.md section 5)."
+            f"[02] the frozen parquet is missing contracted columns {missing_contract}."
         )
     if "POD_HEMATOMA" in back.columns:
         raise SystemExit("[02] POD_HEMATOMA was created; the roster uses HEMATOMA_POD")

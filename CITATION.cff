@@ -1,18 +1,28 @@
 cff-version: 1.2.0
-message: "If you use this analysis code, please cite the paper below."
+message: "If you use this analysis code, please cite it using the metadata below."
 title: "ACDF discharge timing: analysis code (ACS-NSQIP 2012-2024)"
 abstract: >-
   Cohort construction and statistical analysis code for a study of discharge
   timing after anterior cervical discectomy and fusion in the ACS-NSQIP Adult
-  Participant Use Data File, 2012 to 2024. Contains no patient-level data.
+  Participant Use Data File, 2012 to 2024. Release 1.1.0 adds the code and
+  aggregate results of the additional analyses reported in the Supplement.
+  Contains no patient-level data.
 type: software
+version: "1.1.0"
+doi: "10.5281/zenodo.21989672"
+repository-code: "https://github.com/samersalman/acdf-discharge-timing"
 license: MIT
-# TODO BEFORE PUSHING: add every co-author, in the manuscript's author order,
-# and add ORCID identifiers where available. A citation file with an incomplete
-# author list is worse than none.
 authors:
   - family-names: "Salman"
-    given-names: "Samer"
+    given-names: "Samer G."
+    orcid: "https://orcid.org/0009-0007-9897-4071"
+    affiliation: "Baylor College of Medicine, Houston, TX, United States"
+  - family-names: "Phadke"
+    given-names: "Rohan A."
+    affiliation: "Baylor College of Medicine, Houston, TX, United States"
+  - family-names: "Lee"
+    given-names: "Nathan J."
+    affiliation: "Midwest Orthopaedics at Rush, Rush University Medical Center, Chicago, IL, United States"
 keywords:
   - anterior cervical discectomy and fusion
   - discharge timing

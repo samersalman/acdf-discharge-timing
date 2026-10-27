@@ -1,7 +1,7 @@
 """Single source of truth for the ACDF CPT / ICD taxonomy (ACS-NSQIP Adult PUF 2012-2024).
 
 Import from here. Never re-derive CPT or ICD logic anywhere else in the pipeline.
-Per `CLAUDE.md` section 5 hard rule, this module is the ONLY place in the project where a
+By design, this module is the ONLY place in the project where a
 CPT or ICD code may appear as a literal. A bare code literal in any other file is a defect.
 
 The module is pure: no pandas import, no file I/O at import, no printing at import. Every
@@ -11,11 +11,11 @@ predicate is total (None / NaN / empty / float-like input returns False rather t
 ===============================================================================
 1. PROVENANCE
 ===============================================================================
-Code lists come from `plans/2026-07-30-acdf-hematoma-nsqip.md`, section "Study design".
+Code lists come from the pre-specified study design of the companion hematoma study.
 Every set below was then re-measured read-only against
 `nsqip-db/parquet/main/main_2012..2024.parquet` on 2026-07-30, and re-verified on
-2026-07-30 during the Batch 1 review. TWO cohort ladders reproduce to the row, and they
-differ ONLY in how `AGE` is cast (`CLAUDE.md` section 7):
+2026-07-30. TWO cohort ladders reproduce to the row, and they
+differ ONLY in how `AGE` is cast:
 
     | Step                                        | Gate A n | Gate B n | hematoma |
     |---------------------------------------------|----------|----------|----------|
@@ -27,20 +27,20 @@ differ ONLY in how `AGE` is cast (`CLAUDE.md` section 7):
 The hematoma column was RE-PINNED 2026-07-31 to the V2 primary outcome definition, after
 three errors were found in the original ICD-10 code set. Every value was re-measured
 against the export bundle. The two sensitivity definitions give 640/611/544/537 (V0, the
-original set) and 635/606/541/534 (V1, error corrections only). See section 5a.
+original set) and 635/606/541/534 (V1, error corrections only). See note 5a.
 
-Gate A is the plan's ladder, reachable only under a strict integer cast that nulls the 78
+Gate A is the originally specified ladder, reachable only under a strict integer cast that nulls the 78
 patients whose `AGE` is the literal token `'90+'`. It is a RECONCILIATION target reproduced
 by `02_build_cohort.py --replicate-plan`, never a result.
-Gate B is the corrected ladder and is PRIMARY (`CLAUDE.md` section 7.2): the curated `main`
-view ships those 78 patients as `AGE = 90`, and they satisfy the plan's own `age >= 18`.
+Gate B is the corrected ladder and is PRIMARY: the curated `main`
+view ships those 78 patients as `AGE = 90`, and they satisfy the original specification's own `age >= 18`.
 
 The hematoma column is shared because it is IDENTICAL on both ladders at every step: the 78
 restored nonagenarians contribute ZERO hematoma events. Measured, not assumed. See
 `COHORT_LADDER_EVENTS` below.
 
-Three operational details are NOT in the plan prose but are required to hit those counts;
-they are recorded in `derived/notes_cpt.md` sections 4 and 5 for `02_build_cohort.py`.
+Three operational details are NOT in the original specification but are required to hit
+those counts; `02_build_cohort.py` must apply them.
 
 ===============================================================================
 2. WHY PREFIX MATCHING, AND WHY THE SEROMA GUARD IS NOT OPTIONAL
@@ -55,7 +55,7 @@ abstractor entered. All of these literal forms are present in the 2012-2024 PUF:
     G97.5  (bare) G97.51          G97.52
 
 An exact-code set would silently drop every truncated form, so matching is by PREFIX.
-But the same families also contain SEROMA members, which the plan excludes:
+But the same families also contain SEROMA members, which the original specification excludes:
 
     M96.842 (606)  M96.843 (209)   <- swallowed by prefix M9684 unless guarded
     L76.33  (35)   L76.34 (1,494)  <- swallowed by prefix L763  unless guarded
@@ -70,14 +70,14 @@ Gate A / 113,469 Gate B):
     ICD-10 seroma guard dropped                       561   (+17)
     ICD-9 998.13 guard dropped as well                562   (+1)
 
-562 is the figure `CLAUDE.md` 6d.5 quotes and it means BOTH guards dropped. Dropping only
+562 is the figure that results when BOTH guards are dropped. Dropping only
 the ICD-10 guard gives 561; the extra case is a slot-1 `REOPORICD91 = '998.13'`.
 
 **G97.63 and G97.64 were missing from that guard until 2026-07-31.** They are the
 postprocedural SEROMA members of the G97.6x family, verified against the CMS FY2026
 tabular order file, and 1 of the 537 V0 events rested solely on them. They are in the
-primary guard from V1 onward, which enforces the plan's stated intent rather than
-changing it. See section 5a.
+primary guard from V1 onward, which enforces the original specification's stated intent rather than
+changing it. See note 5a.
 
 ===============================================================================
 3. THE HEMATOMA UNION IS THREE CODE SYSTEMS OVER THE REOPERATION-1 SLOT
@@ -93,7 +93,7 @@ union:
 
 The CPT and ICD-9 arms are the same in all three variants; only the ICD-10 arm moves.
 Adding the reoperation-2 slot raises the V0 identified-cohort count to 648 (elective 617)
-on either ladder and does NOT reproduce the plan's 640.
+on either ladder and does NOT reproduce the original specification's 640.
 
     REOPORCPT1     unplanned reoperation 1 CPT     2012-2024   -> HEMATOMA_REOP_CPTS
     REOPORICD91    unplanned reoperation 1 ICD-9   2012-2020   -> HEMATOMA_ICD9
@@ -184,7 +184,7 @@ def normalize_icd(code: Any) -> str:
 # ---------------------------------------------------------------------------
 # 1. Principal procedure codes: cohort inclusion
 # ---------------------------------------------------------------------------
-# Plan, "Inclusion": age >= 18, principal CPT in this set, elective. The principal `CPT`
+# Original specification, "Inclusion": age >= 18, principal CPT in this set, elective. The principal `CPT`
 # column ONLY; `OTHERCPT*` and `CONCPT*` are never consulted for cohort entry.
 
 PRINCIPAL_CPTS: FrozenSet[str] = frozenset({"22551", "22554", "63075"})
@@ -192,7 +192,7 @@ PRINCIPAL_CPTS: FrozenSet[str] = frozenset({"22551", "22554", "63075"})
 # ---------------------------------------------------------------------------
 # 2. Exclusion codes, scanned across OTHERCPT1..OTHERCPT10
 # ---------------------------------------------------------------------------
-# Plan, "Exclusion". Kept as three named subsets so Figure 1 can report the reason a case
+# Original specification, "Exclusion". Kept as three named subsets so Figure 1 can report the reason a case
 # left the cohort, then unioned into EXCLUSION_CPTS for the actual filter.
 
 EXCLUSION_CORPECTOMY_CPTS: FrozenSet[str] = frozenset({"63081", "63082", "22548"})
@@ -209,9 +209,9 @@ EXCLUSION_CPTS: FrozenSet[str] = (
 
 # Reason label per excluded code, for the Figure 1 STROBE flow.
 #
-# CLAUDE.md 6d.6 and 6j.2, binding: the middle set MUST be described as "concurrent
+# The middle set MUST be described as "concurrent
 # posterior spinal decompression or instrumentation" and NEVER as "posterior cervical".
-# 63047 is a lumbar code and 22842 to 22844 are not cervical-specific, so a spine reviewer
+# 63047 is a lumbar code and 22842 to 22844 are not cervical-specific, so a spine surgeon
 # reads "posterior cervical procedure" as an error. The CPT set itself is honored verbatim
 # because it is what produces the 113,469 rung; only the description is corrected. An
 # earlier revision of this file carried the banned wording and commented it as safe to
@@ -235,12 +235,12 @@ EXCLUSION_REASON_ORDER: Tuple[str, ...] = (
 # ---------------------------------------------------------------------------
 # 3. Fusion levels
 # ---------------------------------------------------------------------------
-# Plan, "Exposures": fusion levels 1 / 2 / >=3, derived by counting repeated CPT 22552
+# Original specification, "Exposures": fusion levels 1 / 2 / >=3, derived by counting repeated CPT 22552
 # across OTHERCPT1..10. 22552 is the "each additional interspace" add-on to 22551, so one
 # occurrence means a second level, two occurrences a third, and so on.
 #
 # Measured distribution of 22552 occurrences over OTHERCPT1..10, on the CORRECTED IDENTIFIED
-# cohort (Gate B, n = 124,344; the counts below sum to 124,344, not to the plan's 124,266):
+# cohort (Gate B, n = 124,344; the counts below sum to 124,344, not to the original specification's 124,266):
 #   0 -> 70,120 | 1 -> 47,262 | 2 -> 5,713 | 3 -> 1,126 | 4 -> 102 | 5..8 -> 21
 # The same tally on the Gate A identified cohort (n = 124,266) is
 #   0 -> 70,064 | 1 -> 47,243 | 2 -> 5,711 | 3 -> 1,125 | 4 -> 102 | 5..8 -> 21
@@ -254,16 +254,16 @@ LEVEL_STRATUM_UNKNOWN: str = ""
 # ---------------------------------------------------------------------------
 # 4. Anterior instrumentation covariate, and the airway-catastrophe marker
 # ---------------------------------------------------------------------------
-# Plan, "Covariates": anterior instrumentation (22845-22847), a plate-fixation covariate,
+# Original specification, "Covariates": anterior instrumentation (22845-22847), a plate-fixation covariate,
 # scanned across OTHERCPT1..10. Measured: 71,946 of the 113,469-case Gate B exclusion step
 # (71,919 of the 113,411-case Gate A step).
 #
-# Plan, "Secondary outcomes": reoperative tracheostomy, CPT 31600 in REOPORCPT1. This marker
-# is STEP-SPECIFIC and the plan's "61" is an identified-cohort figure. Measured 2026-07-30,
+# Original specification, "Secondary outcomes": reoperative tracheostomy, CPT 31600 in REOPORCPT1. This marker
+# is STEP-SPECIFIC and the original specification's "61" is an identified-cohort figure. Measured 2026-07-30,
 # slot 1 (REOPORCPT1) only, and IDENTICAL on both ladders:
 #   identified 61 | elective 46 | post-exclusion 32 | analytic 24
 # Slots 1+2 (REOPORCPT1 or REOPOR2CPT1): 73 | 55 | 38 | 30.
-# `CLAUDE.md` 6c fixes slot 1 as the convention; slots 1+2 belong in the ascertainment
+# Slot 1 is the convention; slots 1+2 belong in the ascertainment
 # supplement. Re-measure in the step that owns the number; do not copy it from here.
 
 ANTERIOR_INSTRUMENTATION_CPTS: FrozenSet[str] = frozenset({"22845", "22846", "22847"})
@@ -272,7 +272,7 @@ TRACHEOSTOMY_CPT: str = "31600"
 # ---------------------------------------------------------------------------
 # 5. Hematoma ascertainment: a UNION of three code systems
 # ---------------------------------------------------------------------------
-# Plan, "Primary outcome". A case is a hematoma event if ANY arm fires.
+# Original specification, "Primary outcome". A case is a hematoma event if ANY arm fires.
 
 # --- arm 1: reoperation CPT (REOPORCPT1), all 13 years -----------------------
 HEMATOMA_REOP_CPTS: FrozenSet[str] = frozenset({"10140", "21501", "35800", "20005"})
@@ -287,8 +287,7 @@ SEROMA_ICD9_EXCLUDED: FrozenSet[str] = frozenset({normalize_icd("998.13")})
 #
 # ###########################################################################
 # THE PRIMARY OUTCOME DEFINITION SWITCH. Change ONE line to change the study's
-# primary outcome; everything downstream follows. See section 5a below and
-# `derived/notes_cpt.md` section 10.
+# primary outcome; everything downstream follows. See note 5a below.
 # ###########################################################################
 HEMATOMA_DEFINITION: str = "V2"
 
@@ -306,7 +305,7 @@ _ICD10_V0: Dict[str, Any] = dict(
         normalize_icd("L76.2"),     # postprocedural hemorrhage, skin and subcutaneous
         normalize_icd("L76.3"),     # postprocedural hematoma and seroma, skin and subcut.
         normalize_icd("G97.6"),     # postprocedural hematoma and seroma, nervous system
-        normalize_icd("T81.0"),     # DOES NOT EXIST IN ICD-10-CM. See section 5a.
+        normalize_icd("T81.0"),     # DOES NOT EXIST IN ICD-10-CM. See note 5a.
         normalize_icd("T79.2XXA"),  # traumatic secondary/recurrent hemorrhage and seroma
     ),
     exact=frozenset({normalize_icd("M96.810"), normalize_icd("M96.820")}),
@@ -322,7 +321,7 @@ _ICD10_V0: Dict[str, Any] = dict(
 # V1 = error corrections only. T81.0 removed (no such ICD-10-CM code in any fiscal year);
 # M96.820 removed (accidental puncture and laceration, not a bleeding code); G97.63 and
 # G97.64 added to the seroma guard (they are the postprocedural SEROMA members of the
-# G97.6x family and the plan already excludes seroma-only codes).
+# G97.6x family and the original specification already excludes seroma-only codes).
 _ICD10_V1: Dict[str, Any] = dict(
     prefixes=tuple(p for p in _ICD10_V0["prefixes"] if p != normalize_icd("T81.0")),
     exact=frozenset({normalize_icd("M96.810")}),
@@ -378,7 +377,7 @@ SEROMA_ICD10_EXCLUDED: FrozenSet[str] = \
 #            musculoskeletal system procedure." Valid and billable in every fiscal year,
 #            but NOT a bleeding code. 2 of the 537 events under V0 rest solely on it.
 #            REMOVED, which also resolves the open UNVERIFIED_DESCRIPTORS item that
-#            `CLAUDE.md` 6d.7 and `derived/notes_cpt.md` 6.3 left blocking Supplement S1.
+#            previously blocked Supplement S1.
 #   M96.810  KEPT. "Intraoperative hemorrhage and hematoma of a musculoskeletal structure
 #            complicating a musculoskeletal system procedure." It is a bleeding code.
 #            It matches 0 rows in this cohort, so it is inert either way; it stays because
@@ -386,7 +385,7 @@ SEROMA_ICD10_EXCLUDED: FrozenSet[str] = \
 #   G97.63   "Postprocedural seroma of a nervous system organ or structure following a
 #   G97.64   nervous system procedure" / "... following other procedure". These are SEROMA
 #            codes swept in by the G97.6 prefix. 1 of the 537 events under V0 rests solely
-#            on them. ADDED TO THE SEROMA GUARD, which enforces the plan's own stated
+#            on them. ADDED TO THE SEROMA GUARD, which enforces the original specification's own stated
 #            intent to exclude seroma-only codes rather than changing it.
 #   G97.65   DO NOT EXIST in any fiscal year. An earlier revision of this module named them
 #   G97.66   as "the seroma members of the G97.6x family" in a constant called
@@ -411,7 +410,7 @@ SEROMA_ICD10_EXCLUDED: FrozenSet[str] = \
 # ---------------------------------------------------------------------------
 # 6. Dysphagia, ICD-10 only, 2014-2024
 # ---------------------------------------------------------------------------
-# Plan, section 4. The family is R13.1 and everything beneath it. A SINGLE prefix is used,
+# Original specification, "Dysphagia". The family is R13.1 and everything beneath it. A SINGLE prefix is used,
 # so `is_dysphagia_icd10` is one boolean per code and per-subcode counts partition the
 # family exactly once. R13.1 is itself a prefix of R13.10 / R13.12 / ..., which is why the
 # family total must be counted as "cases where the predicate is True", NEVER as the sum of
@@ -420,7 +419,7 @@ SEROMA_ICD10_EXCLUDED: FrozenSet[str] = \
 # R13 (unspecified symptoms) and R13.0 (aphagia) are outside the family and do not match.
 DYSPHAGIA_ICD10_PREFIXES: Tuple[str, ...] = (normalize_icd("R13.1"),)
 
-# The six literals the plan enumerates. The prefix family and this exact set give IDENTICAL
+# The six literals the original specification enumerates. The prefix family and this exact set give IDENTICAL
 # counts at every ladder step because R13.11 has zero occurrences in this cohort. The counts
 # are step-specific; the pair below is the POST-EXCLUSION step (113,411 Gate A / 113,469
 # Gate B), which is where they were first measured:
@@ -436,7 +435,7 @@ DYSPHAGIA_ICD10_PLAN_CODES: FrozenSet[str] = frozenset(
 # R13.1 carries the ICD-10-CM CATEGORY HEADER title, "Dysphagia" (verified 2026-07-30
 # against the AAPC and icd10data ICD-10-CM code lookups: R13.1 is a non-billable header over
 # the billable R13.10-R13.19 subcodes, under R13 "Aphagia and dysphagia"). "unspecified"
-# belongs to R13.10 and must not be attached to R13.1 (CLAUDE.md 6d.7: no invented descriptor).
+# belongs to R13.10 and must not be attached to R13.1 (no invented descriptor).
 DYSPHAGIA_ICD10_SUBTYPE: Dict[str, str] = {
     normalize_icd("R13.1"): "Dysphagia",
     normalize_icd("R13.10"): "Dysphagia, unspecified",
@@ -539,9 +538,9 @@ CODE_LABEL: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 # The 25 most frequent `READMRELICD101` values in this cohort. Table 5C previously
 # published these as BARE CODES in a column headed "Readmission cause", which is unreadable
-# to a clinical reviewer. Every descriptor below is the CMS FY2026 official long title,
+# to a clinical reader. Every descriptor below is the CMS FY2026 official long title,
 # verified 2026-07-31 against `icd10cm_order_2026.txt`; nothing is paraphrased and nothing
-# is invented (CLAUDE.md 6d.7). A code outside this list still renders as a bare code, and
+# is invented. A code outside this list still renders as a bare code, and
 # `04_dysphagia.py` says so in the caption rather than guessing.
 #
 # `M96.842` and `L76.34` are also in this top-25 list but are NOT repeated here: they
@@ -581,7 +580,7 @@ READMISSION_CODE_LABEL: Dict[str, str] = {
 # it has now been read (it is accidental puncture and laceration, not a bleeding code) and
 # the code was removed from the outcome definition rather than labelled into it. The set
 # stays as the mechanism: any future code whose official descriptor cannot be verified goes
-# here and `code_label` returns '' for it (CLAUDE.md 6d.7 - never invent a descriptor).
+# here and `code_label` returns '' for it (never invent a descriptor).
 UNVERIFIED_DESCRIPTORS: FrozenSet[str] = frozenset()
 
 # Codes VERIFIED NOT TO EXIST in ICD-10-CM, in any fiscal year FY2016-FY2026. These have no
@@ -611,11 +610,11 @@ DYSPHAGIA_REOPERATION_ICD10_COLUMN: str = "REOPOR1ICD101"
 # 9. Verified cohort ladders, machine-readable. TWO of them.
 # ---------------------------------------------------------------------------
 # So `02_build_cohort.py` asserts against these instead of carrying its own copies.
-# Both re-measured against the parquet on 2026-07-30 (Batch 1 review).
+# Both re-measured against the parquet on 2026-07-30.
 #
-# `CLAUDE.md` section 7 defines two gates and this module exports one dict per gate:
+# The pipeline defines two cohort gates and this module exports one dict per gate:
 #
-#   COHORT_LADDER_N_PLAN  Gate A, RECONCILIATION ONLY. The plan's ladder, reachable only
+#   COHORT_LADDER_N_PLAN  Gate A, RECONCILIATION ONLY. The originally specified ladder, reachable only
 #                         under the strict integer cast that nulls AGE = '90+' and silently
 #                         drops 78 eligible nonagenarians. `02 --replicate-plan` must
 #                         reproduce it EXACTLY. It goes in the ascertainment supplement.
@@ -624,7 +623,7 @@ DYSPHAGIA_REOPERATION_ICD10_COLUMN: str = "REOPOR1ICD101"
 #   COHORT_LADDER_N       Gate B, PRIMARY. The corrected ladder. Every table, figure, model
 #                         and manuscript sentence uses this one. The curated `main` view
 #                         ships AGE as SMALLINT with '90+' normalized to 90, so the export
-#                         bundle CONTAINS those 78 patients and reproducing the plan's
+#                         bundle CONTAINS those 78 patients and reproducing the original specification's
 #                         numbers would mean deliberately re-introducing the cast bug.
 #
 # The unqualified name is the primary cohort on purpose: an import that forgets the
@@ -647,7 +646,7 @@ COHORT_LADDER_N: Dict[str, int] = {
     "exclusions": 113469,
     "analytic": 112642,
 }
-# RE-PINNED 2026-07-31 to the V2 primary outcome definition (section 5a). Every figure
+# RE-PINNED 2026-07-31 to the V2 primary outcome definition (note 5a). Every figure
 # below was MEASURED against the export bundle, not computed by arithmetic from the old
 # 640 / 611 / 544 / 537. The event ladder is still shared by Gate A and Gate B: the 78
 # restored nonagenarians contribute zero hematoma events under all three variants.
@@ -679,7 +678,7 @@ assert HEMATOMA_DEFINITION in HEMATOMA_ICD10_VARIANTS, (
 )
 assert set(HEMATOMA_ICD10_VARIANTS) == set(HEMATOMA_DEFINITION_ORDER)
 assert HEMATOMA_DEFINITION == "V2", (
-    "the primary outcome definition is V2 (CLAUDE.md 6d.9). Switching it is a deliberate "
+    "the primary outcome definition is V2. Switching it is a deliberate "
     "act: change this assertion and COHORT_LADDER_EVENTS follows automatically, but every "
     "pinned gate in verify_numbers.py must be re-measured, never recomputed."
 )
@@ -781,7 +780,7 @@ for _c in DYSPHAGIA_ICD10_PLAN_CODES | set(DYSPHAGIA_ICD10_SUBTYPE):
     assert _c.startswith(DYSPHAGIA_ICD10_PREFIXES), f"{_c!r} is outside the dysphagia family"
 assert DYSPHAGIA_ICD10_PLAN_CODES <= set(DYSPHAGIA_ICD10_SUBTYPE)
 
-# Rendered-text hygiene (CLAUDE.md hard rules 1 and 2) on everything this module exports.
+# Rendered-text hygiene on everything this module exports.
 # _EM_DASH is written as a \u2014 escape ON PURPOSE, matching the convention stated in
 # `variable_dict.py`: no file in this project may contain a literal U+2014, so a repo-wide
 # grep for the character stays clean and the ban is enforceable by search.
@@ -794,14 +793,14 @@ for _d in (CODE_LABEL, EXCLUSION_REASON, DYSPHAGIA_ICD10_SUBTYPE, READMISSION_CO
 # Both ladders are pinned at import. Gate B (primary) first, then Gate A (reconciliation).
 assert COHORT_LADDER_N == {
     "identified": 124344, "elective": 121210, "exclusions": 113469, "analytic": 112642,
-}, "Gate B (primary, corrected) ladder drifted; see CLAUDE.md section 7.2"
+}, "Gate B (primary, corrected) ladder drifted"
 assert COHORT_LADDER_N_PLAN == {
     "identified": 124266, "elective": 121142, "exclusions": 113411, "analytic": 112585,
-}, "Gate A (plan replication) ladder drifted; see CLAUDE.md section 7.3"
+}, "Gate A (original-specification replication) ladder drifted"
 assert COHORT_LADDER_EVENTS == {
     "identified": 642, "elective": 613, "exclusions": 548, "analytic": 541,
 }, ("the shared event ladder drifted. It was re-pinned 2026-07-31 to the V2 primary "
-    "outcome definition and every value was MEASURED (CLAUDE.md 7.4)")
+    "outcome definition and every value was MEASURED")
 assert COHORT_LADDER_EVENTS_BY_DEFINITION["V0"]["analytic"] == 537
 assert COHORT_LADDER_EVENTS_BY_DEFINITION["V1"]["analytic"] == 534
 assert COHORT_LADDER_EVENTS_BY_DEFINITION["V2"]["analytic"] == 541
@@ -883,7 +882,7 @@ def is_hematoma_icd9(code: Any) -> bool:
 
 
 def is_hematoma_icd10_variant(code: Any, definition: str) -> bool:
-    """`is_hematoma_icd10` under a named code-set variant. See section 5a.
+    """`is_hematoma_icd10` under a named code-set variant. See note 5a.
 
     `definition` is 'V0', 'V1' or 'V2'. This is the function the Supplement S2 sensitivity
     rows use, so a sensitivity analysis never has to write a code literal of its own.
@@ -915,7 +914,7 @@ def is_hematoma_icd10(code: Any) -> bool:
     is required because the same prefixes would otherwise sweep in M96.842, M96.843,
     L76.33, L76.34 and, from V1 onward, G97.63 and G97.64.
 
-    This reads the PRIMARY definition, `HEMATOMA_DEFINITION` (section 5a). Use
+    This reads the PRIMARY definition, `HEMATOMA_DEFINITION` (note 5a). Use
     `is_hematoma_icd10_variant` for a sensitivity code set.
     """
     return is_hematoma_icd10_variant(code, HEMATOMA_DEFINITION)
@@ -943,7 +942,7 @@ def is_hematoma_any(cpt: Any = None, icd9: Any = None, icd10: Any = None) -> boo
 
 def is_hematoma_any_variant(cpt: Any = None, icd9: Any = None, icd10: Any = None,
                             definition: str = HEMATOMA_DEFINITION) -> bool:
-    """`is_hematoma_any` under a named ICD-10 code-set variant. See section 5a.
+    """`is_hematoma_any` under a named ICD-10 code-set variant. See note 5a.
 
     Only the ICD-10 arm differs between variants; the reoperation-CPT and ICD-9 arms are
     the same in all three.
@@ -1133,7 +1132,7 @@ def _self_test() -> None:
     assert is_hematoma_icd10("M96.81") is False and is_hematoma_icd10("M968") is False
     checks += 4
 
-    # --- 3a. the three code-set variants behave as section 5a states --------------
+    # --- 3a. the three code-set variants behave as note 5a states --------------
     assert HEMATOMA_DEFINITION == "V2"
     assert is_hematoma_icd10_variant("T81.0", "V0") is True
     assert is_hematoma_icd10_variant("T81.0", "V1") is False
@@ -1291,12 +1290,12 @@ def _self_test() -> None:
         assert is_exclusion_cpt(code) is False, f"{code} must NOT be an exclusion"
         checks += 1
     assert exclusion_reason("63081") == "Concurrent corpectomy"
-    # CLAUDE.md 6d.6 / 6j.2: the banned wording must not come back by accident.
+    # The banned wording must not come back by accident.
     assert exclusion_reason("22600") == (
         "Concurrent posterior spinal decompression or instrumentation")
     assert not any("posterior cervical" in v.lower()
                    for v in EXCLUSION_REASON.values()), (
-        "CLAUDE.md 6d.6 bans 'posterior cervical' as a rendered exclusion label")
+        "'posterior cervical' is banned as a rendered exclusion label")
     assert exclusion_reason("22856") == "Cervical disc arthroplasty"
     assert exclusion_reason("22551") == ""
     checks += 4
@@ -1408,9 +1407,9 @@ def _self_test() -> None:
     # --- 10. BOTH verified ladders are internally consistent -----------------------
     # Gate B (COHORT_LADDER_N) is primary; Gate A (COHORT_LADDER_N_PLAN) is the
     # --replicate-plan reconciliation target. Both are checked, and so is the shared
-    # event ladder and the nonagenarian delta between them (CLAUDE.md section 7).
+    # event ladder and the nonagenarian delta between them.
     for gate, ladder in (("B (primary, corrected)", COHORT_LADDER_N),
-                         ("A (plan replication)", COHORT_LADDER_N_PLAN)):
+                         ("A (original-specification replication)", COHORT_LADDER_N_PLAN)):
         previous_n, previous_e = None, None
         for step in COHORT_LADDER_ORDER:
             n, e = ladder[step], COHORT_LADDER_EVENTS[step]
@@ -1472,7 +1471,7 @@ def _self_test() -> None:
     print(f"  ladder Gate B (PRIMARY) ........ "
           + " -> ".join(f"{COHORT_LADDER_N[s]:,}/{COHORT_LADDER_EVENTS[s]}"
                         for s in COHORT_LADDER_ORDER))
-    print(f"  ladder Gate A (replicate-plan) . "
+    print(f"  ladder Gate A (reconciliation) . "
           + " -> ".join(f"{COHORT_LADDER_N_PLAN[s]:,}/{COHORT_LADDER_EVENTS[s]}"
                         for s in COHORT_LADDER_ORDER))
     print(f"  nonagenarian delta (B minus A) . "

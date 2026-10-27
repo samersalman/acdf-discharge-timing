@@ -5,12 +5,12 @@
 # This file is the parent project's vars/acdf_hematoma.txt with EXACTLY ONE
 # substantive change: INOUT is added. 135 -> 136 requested columns. Every other
 # entry, and the order of every entry, is unchanged, so the two projects pull the
-# same cohort out of the same warehouse and cannot fork. See .build_facts.md
-# section 4.
+# same cohort out of the same warehouse and cannot fork.
 #
 # Every code below was VERIFIED to exist in nsqip-db/parquet/main/main_<YYYY>.parquet
 # and on the curated `main` view, for at least one year in 2012-2024, on 2026-07-30.
-# Years-present and cohort-level null percentages are in v1/.build_facts.md section 3.
+# The years in which each code is present, and its null percentage in the cohort, were
+# checked at that time.
 #
 # NOT LISTED, BY DESIGN -- export.py auto-injects these seven and listing any of
 # them here is an ERROR:
@@ -22,7 +22,7 @@
 #     --var-file <this file>
 #
 # !! THE THREE CPT CODES ABOVE ARE A PASTE-READY INVOCATION, NOT A SOURCE OF TRUTH. !!
-# v1/CLAUDE.md hard rule 5: `cpt_acdf.py` is the ONLY place in this project where a CPT or
+# By design, `cpt_acdf.py` is the ONLY place in this project where a CPT or
 # ICD code may be written as a literal. `01_export_cohort.py` MUST build the --cpt arguments
 # by importing them:
 #
@@ -43,13 +43,13 @@
 #   HDISDT     the name looks like a discharge date; the values are a four-digit
 #              YEAR (2015, 2016, ...). Never a length of stay. Use DOPTODIS.
 #   RENAFAIL / RENAINSF / OPRENAFL   documented definition flips and a 2021 hole.
-#              Not needed by the plan; omitted rather than mis-pooled.
+#              Not needed for this analysis; omitted rather than mis-pooled.
 #   READMUNRELICD91-95 / READMUNRELSUSP1-5   100% NULL in this cohort after 2017.
 #   PRWBC / PRCREAT   exist and are well populated (90.4% / 88.1% on the analytic
-#              cohort) but the plan uses neither. Omitted, and their labels were
-#              correspondingly REMOVED from variable_dict.py in the Batch 1 review, so
-#              the label layer and this list agree. If a reviewer asks for either, add it
-#              HERE first (the bundle width changes), re-run 01, then re-add the label.
+#              cohort) but this analysis uses neither. Omitted, and their labels were
+#              correspondingly removed from variable_dict.py, so the label layer and
+#              this list agree. If either is needed, add it HERE first (the bundle
+#              width changes), re-run 01, then re-add the label.
 #
 # NOTE: INOUT is omitted from the parent project's list and is PRESENT here. It is the
 # one and only difference between the two files. See the block below where it is listed.
@@ -60,7 +60,7 @@
 # OTHERCPT1-10 drive fusion-level counting (repeated 22552), anterior
 # instrumentation (22845-22847), and the corpectomy/posterior/arthroplasty
 # exclusions. The exclusion step reproduces off OTHERCPT1-10 ALONE, on both ladders:
-# 113,469 (Gate B, primary) and 113,411 (Gate A, --replicate-plan). Also scanning
+# 113,469 (Gate B, primary) and 113,411 (Gate A, the reconciliation variant). Also scanning
 # CONCPT1-10 gives 113,323 / 113,265 and is NOT the definition.
 # CONCPT1-10 (procedures by a second surgeon) are >=97% NULL; carried for a
 # sensitivity only. All 20 columns exist in all 13 years.
@@ -89,7 +89,7 @@ CONCPT10
 # --- Eligibility -------------------------------------------------------------
 # AGE arrives from the curated view as SMALLINT with '90+' already mapped to 90.
 # EMERGNCY / ELECTSURG stop at 2020; CASETYPE starts at 2021. All three are
-# 0% NULL inside their own year range in this cohort. See .build_facts.md sec. 5.
+# 0% NULL inside their own year range in this cohort.
 AGE
 EMERGNCY
 ELECTSURG
@@ -109,7 +109,7 @@ WEIGHT
 
 
 # --- Comorbidities -----------------------------------------------------------
-# STEROID and HXCHF both carry definition breaks; see .build_facts.md sec. 6.
+# STEROID and HXCHF both carry definition breaks.
 FNSTATUS2
 DIABETES
 SMOKE
@@ -247,14 +247,12 @@ TRANSFUS
 #            measure. Two levels, 'Inpatient' and 'Outpatient', 0% NULL in this
 #            cohort (one SQL NULL row exists database-wide, outside 2012-2024 ACDF).
 #            It records how the case was booked, not how long the patient stayed.
-#        (b) It is DELIBERATELY BANNED in the parent project. `projects/ACDF-hematoma/`
-#            omits it from vars/acdf_hematoma.txt and hard-bans it in that project's
-#            01_export_cohort.py preflight, because framing rule 3 of that project's
-#            v1/CLAUDE.md ("true postoperative length of stay only; never the INOUT
-#            billing label") keeps it out of that manuscript entirely. That ban is
-#            still in force there and this file does not change it.
-#        (c) It is exported HERE because the measurement critique in PLAN.md section
-#            6.4 is one of this paper's two headline findings and cannot be done
+#        (b) It is DELIBERATELY EXCLUDED from the companion hematoma analysis: that
+#            analysis omits it from vars/acdf_hematoma.txt and its export preflight
+#            refuses it, because it uses true postoperative length of stay only and
+#            never the INOUT billing label. This file does not change that.
+#        (c) It is exported HERE because the measurement critique of the billing label
+#            is one of this paper's two headline findings and cannot be done
 #            without it: the whole point is to cross-tabulate the billing label
 #            against true postoperative length of stay, quantify the disagreement
 #            year by year, and re-estimate a published outpatient-versus-inpatient
@@ -271,9 +269,9 @@ DISCHDEST
 
 
 # --- Outcome: other 30-day morbidity ------------------------------------------
-# Not required by the plan. Every one verified present in all 13 years at 0.00%
-# NULL in the analytic cohort. Carried so a reviewer request for a fuller Table 1
-# or complication panel does not force a re-export.
+# Not required for the primary analysis. Every one verified present in all 13 years at
+# 0.00% NULL in the analytic cohort. Carried so that a fuller Table 1 or complication
+# panel does not force a re-export.
 SUPINFEC
 WNDINFD
 ORGSPCSSI
